@@ -150,30 +150,64 @@ def login_user(request):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def logout_user(request):
     """
     Logout user and clear JWT cookies.
+    Requires refresh token cookie.
     """
+    # Check if refresh token exists in cookies
+    refresh_token = request.COOKIES.get('refresh_token')
+    
+    if not refresh_token:
+        return Response({
+            'detail': 'Refresh token is required.'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
     try:
-        # Try to blacklist the refresh token if it exists in cookies
-        refresh_token = request.COOKIES.get('refresh_token')
-        if refresh_token:
-            token = RefreshToken(refresh_token)
-            token.blacklist()
-    except Exception:
-        pass
-    
-    # Create response
-    response = Response({
-        'message': 'Logout successful.'
-    }, status=status.HTTP_200_OK)
-    
-    # Clear cookies
-    response.delete_cookie('access_token')
-    response.delete_cookie('refresh_token')
-    
-    return response
+        # Try to blacklist the refresh token
+        token = RefreshToken(refresh_token)
+        token.blacklist()
+        
+        # Create success response
+        response = Response({
+            'detail': 'Log-Out successfully! All Tokens will be deleted. Refresh token is now invalid.'
+        }, status=status.HTTP_200_OK)
+        
+        # Clear cookies with proper attributes
+        response.delete_cookie(
+            'access_token',
+            path='/',
+            samesite='Lax'
+        )
+        response.delete_cookie(
+            'refresh_token',
+            path='/',
+            samesite='Lax'
+        )
+        
+        return response
+        
+    except Exception as e:
+        # If token is invalid or already blacklisted, still clear cookies and return success
+        # This prevents enumeration attacks and provides better UX
+        response = Response({
+            'detail': 'Log-Out successfully! All Tokens will be deleted. Refresh token is now invalid.'
+        }, status=status.HTTP_200_OK)
+        
+        # Clear cookies anyway
+        response.delete_cookie(
+            'access_token',
+            path='/',
+            samesite='Lax'
+        )
+        response.delete_cookie(
+            'refresh_token',
+            path='/',
+            samesite='Lax'
+        )
+        
+        return response
 
 
 @api_view(['POST'])

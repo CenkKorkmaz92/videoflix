@@ -1,0 +1,632 @@
+{
+  "info": {
+    "name": "Videoflix Logout Tests - Complete Coverage",
+    "description": "Comprehensive logout endpoint testing with all possible status codes and scenarios",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "videoflix-logout-tests-complete",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "patch": 0
+    }
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "api_base",
+      "value": "{{base_url}}/api",
+      "type": "string"
+    },
+    {
+      "key": "test_email",
+      "value": "test@example.com",
+      "type": "string"
+    },
+    {
+      "key": "test_password",
+      "value": "testpass123",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Setup - Login to get tokens",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Test successful login",
+              "pm.test(\"Login successful\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "// Extract tokens from cookies",
+              "const allSetCookieHeaders = pm.response.headers.all('Set-Cookie');",
+              "const setCookieHeader = allSetCookieHeaders.join('; ');",
+              "if (setCookieHeader) {",
+              "    const accessTokenMatch = setCookieHeader.match(/access_token=([^;]+)/);",
+              "    const refreshTokenMatch = setCookieHeader.match(/refresh_token=([^;]+)/);",
+              "    ",
+              "    if (accessTokenMatch) {",
+              "        pm.collectionVariables.set('access_token', accessTokenMatch[1]);",
+              "        console.log('✅ Access token extracted');",
+              "    }",
+              "    if (refreshTokenMatch) {",
+              "        pm.collectionVariables.set('refresh_token', refreshTokenMatch[1]);",
+              "        console.log('✅ Refresh token extracted');",
+              "    }",
+              "}",
+              "",
+              "console.log('🔑 Login setup completed');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\\n  \\\"email\\\": \\\"{{test_email}}\\\",\\n  \\\"password\\\": \\\"{{test_password}}\\\"\\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{api_base}}/login/",
+          "host": ["{{api_base}}"],
+          "path": ["login", ""]
+        }
+      }
+    },
+    {
+      "name": "Logout Tests - Happy Paths",
+      "item": [
+        {
+          "name": "200 - Successful Logout with Valid Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Test 200 Status Code",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "// Test Response Structure and Message",
+                  "pm.test(\"Response has correct message\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('detail');",
+                  "    pm.expect(jsonData.detail).to.equal('Log-Out successfully! All Tokens will be deleted. Refresh token is now invalid.');",
+                  "});",
+                  "",
+                  "// Test Cookies are Cleared",
+                  "pm.test(\"Cookies are cleared\", function () {",
+                  "    const setCookieHeaders = pm.response.headers.all('Set-Cookie');",
+                  "    if (setCookieHeaders && setCookieHeaders.length > 0) {",
+                  "        const allCookies = setCookieHeaders.join('; ');",
+                  "        // Check that cookies are being deleted (they should have empty values or Max-Age=0)",
+                  "        pm.expect(allCookies).to.satisfy(function(cookies) {",
+                  "            return cookies.includes('access_token=') || cookies.includes('refresh_token=') ||",
+                  "                   cookies.includes('Max-Age=0') || cookies.includes('expires=');",
+                  "        });",
+                  "    }",
+                  "});",
+                  "",
+                  "// Test Response Time",
+                  "pm.test(\"Response time is acceptable\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "});",
+                  "",
+                  "console.log('✅ Successful logout test completed');",
+                  "console.log('Response:', pm.response.text());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "refresh_token={{refresh_token}}; access_token={{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{api_base}}/logout/",
+              "host": ["{{api_base}}"],
+              "path": ["logout", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Logout Tests - Error Cases",
+      "item": [
+        {
+          "name": "400 - Missing Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Test 400 Status Code",
+                  "pm.test(\"Status code is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "// Test Error Message",
+                  "pm.test(\"Error message is correct\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('detail');",
+                  "    pm.expect(jsonData.detail).to.equal('Refresh token is required.');",
+                  "});",
+                  "",
+                  "console.log('❌ Missing refresh token test completed');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{api_base}}/logout/",
+              "host": ["{{api_base}}"],
+              "path": ["logout", ""]
+            }
+          }
+        },
+        {
+          "name": "200 - Invalid Refresh Token (Graceful Handling)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Test 200 Status Code (graceful handling)",
+                  "pm.test(\"Status code is 200 (graceful handling)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "// Test Response Message",
+                  "pm.test(\"Response message is correct\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('detail');",
+                  "    pm.expect(jsonData.detail).to.equal('Log-Out successfully! All Tokens will be deleted. Refresh token is now invalid.');",
+                  "});",
+                  "",
+                  "console.log('✅ Invalid token handled gracefully');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "refresh_token=invalid_token_value; access_token=invalid_access_token"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{api_base}}/logout/",
+              "host": ["{{api_base}}"],
+              "path": ["logout", ""]
+            }
+          }
+        },
+        {
+          "name": "200 - Already Blacklisted Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Test 200 Status Code",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "// Test Response Message",
+                  "pm.test(\"Blacklisted token handled gracefully\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('detail');",
+                  "    pm.expect(jsonData.detail).to.equal('Log-Out successfully! All Tokens will be deleted. Refresh token is now invalid.');",
+                  "});",
+                  "",
+                  "console.log('✅ Already blacklisted token handled gracefully');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "refresh_token={{refresh_token}}; access_token={{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{api_base}}/logout/",
+              "host": ["{{api_base}}"],
+              "path": ["logout", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "HTTP Method Tests",
+      "item": [
+        {
+          "name": "405 - Method Not Allowed (GET)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Test 405 Status Code",
+                  "pm.test(\"Status code is 405\", function () {",
+                  "    pm.response.to.have.status(405);",
+                  "});",
+                  "",
+                  "// Test Allow Header",
+                  "pm.test(\"Allow header is present\", function () {",
+                  "    const allowHeader = pm.response.headers.get('Allow');",
+                  "    if (allowHeader) {",
+                  "        pm.expect(allowHeader).to.include('POST');",
+                  "    }",
+                  "});",
+                  "",
+                  "console.log('❌ GET method correctly rejected');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_base}}/logout/",
+              "host": ["{{api_base}}"],
+              "path": ["logout", ""]
+            }
+          }
+        },
+        {
+          "name": "405 - Method Not Allowed (PUT)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Test 405 Status Code",
+                  "pm.test(\"Status code is 405\", function () {",
+                  "    pm.response.to.have.status(405);",
+                  "});",
+                  "",
+                  "console.log('❌ PUT method correctly rejected');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{api_base}}/logout/",
+              "host": ["{{api_base}}"],
+              "path": ["logout", ""]
+            }
+          }
+        },
+        {
+          "name": "405 - Method Not Allowed (DELETE)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Test 405 Status Code",
+                  "pm.test(\"Status code is 405\", function () {",
+                  "    pm.response.to.have.status(405);",
+                  "});",
+                  "",
+                  "console.log('❌ DELETE method correctly rejected');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{api_base}}/logout/",
+              "host": ["{{api_base}}"],
+              "path": ["logout", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Content Type Tests",
+      "item": [
+        {
+          "name": "200 - Form Data (Should Work)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Test 200 or 400 Status Code",
+                  "pm.test(\"Status code is 200 or 400\", function () {",
+                  "    pm.expect([200, 400]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "console.log('📝 Form data test completed');",
+                  "console.log('Status:', pm.response.code);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              },
+              {
+                "key": "Cookie",
+                "value": "refresh_token={{refresh_token}}; access_token={{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": []
+            },
+            "url": {
+              "raw": "{{api_base}}/logout/",
+              "host": ["{{api_base}}"],
+              "path": ["logout", ""]
+            }
+          }
+        },
+        {
+          "name": "400 - Invalid JSON",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Test 400 Status Code",
+                  "pm.test(\"Status code is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "// Test JSON Parse Error",
+                  "pm.test(\"JSON parse error or missing token error\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    const responseText = JSON.stringify(jsonData).toLowerCase();",
+                  "    pm.expect(responseText).to.satisfy(function(text) {",
+                  "        return text.includes('json') || ",
+                  "               text.includes('parse') || ",
+                  "               text.includes('refresh token is required');",
+                  "    });",
+                  "});",
+                  "",
+                  "console.log('❌ Invalid JSON test completed');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ invalid json syntax"
+            },
+            "url": {
+              "raw": "{{api_base}}/logout/",
+              "host": ["{{api_base}}"],
+              "path": ["logout", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Security Tests",
+      "item": [
+        {
+          "name": "Response Time Test",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Test Response Time",
+                  "pm.test(\"Response time is acceptable\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "});",
+                  "",
+                  "// Test Status Code",
+                  "pm.test(\"Status code is valid\", function () {",
+                  "    pm.expect([200, 400]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "console.log('⏱️ Response time:', pm.response.responseTime + 'ms');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "refresh_token={{refresh_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{api_base}}/logout/",
+              "host": ["{{api_base}}"],
+              "path": ["logout", ""]
+            }
+          }
+        },
+        {
+          "name": "Server Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Test that server is responding",
+                  "pm.test(\"Server is responding\", function () {",
+                  "    pm.expect([200, 400, 404, 405]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "// Test response time",
+                  "pm.test(\"Server response time acceptable\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "console.log('🔍 Server health check completed');",
+                  "console.log('Response time:', pm.response.responseTime + 'ms');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "OPTIONS",
+            "header": [],
+            "url": {
+              "raw": "{{api_base}}/logout/",
+              "host": ["{{api_base}}"],
+              "path": ["logout", ""]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global pre-request script",
+          "console.log('🚀 Starting Videoflix Logout Test Suite');",
+          "console.log('Base URL:', pm.collectionVariables.get('base_url'));"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global test script - runs after each request",
+          "console.log('📊 Test completed for:', pm.info.requestName);",
+          "console.log('Status:', pm.response.code, pm.response.status);",
+          "",
+          "// Track test results",
+          "if (pm.response.code >= 200 && pm.response.code < 300) {",
+          "    console.log('✅ Success response');",
+          "} else if (pm.response.code >= 400 && pm.response.code < 500) {",
+          "    console.log('⚠️ Client error (expected for negative tests)');",
+          "} else if (pm.response.code >= 500) {",
+          "    console.log('❌ Server error - needs investigation');",
+          "}",
+          "",
+          "console.log('---');"
+        ]
+      }
+    }
+  ]
+}

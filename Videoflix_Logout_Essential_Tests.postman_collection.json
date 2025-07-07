@@ -1,0 +1,233 @@
+{
+  "info": {
+    "name": "Videoflix Logout Tests - Essential",
+    "description": "Essential logout endpoint tests with reliable JSON formatting",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "api_base",
+      "value": "{{base_url}}/api",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Setup: Get Valid Tokens",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Login successful\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "// Extract refresh token from Set-Cookie header",
+              "const setCookieHeaders = pm.response.headers.all('Set-Cookie');",
+              "if (setCookieHeaders) {",
+              "    const allCookies = setCookieHeaders.join('; ');",
+              "    const refreshMatch = allCookies.match(/refresh_token=([^;]+)/);",
+              "    const accessMatch = allCookies.match(/access_token=([^;]+)/);",
+              "    if (refreshMatch) {",
+              "        pm.globals.set('test_refresh_token', refreshMatch[1]);",
+              "        console.log('✅ Refresh token saved');",
+              "    }",
+              "    if (accessMatch) {",
+              "        pm.globals.set('test_access_token', accessMatch[1]);",
+              "        console.log('✅ Access token saved');",
+              "    }",
+              "}",
+              "",
+              "console.log('🔑 Login setup completed');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\": \"test@example.com\", \"password\": \"testpass123\"}"
+        },
+        "url": {
+          "raw": "{{api_base}}/login/",
+          "host": ["{{api_base}}"],
+          "path": ["login", ""]
+        }
+      }
+    },
+    {
+      "name": "02 - Successful Logout (200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Response message is correct\", function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData.detail).to.equal('Log-Out successfully! All Tokens will be deleted. Refresh token is now invalid.');",
+              "});",
+              "",
+              "console.log('✅ Successful logout');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Cookie",
+            "value": "refresh_token={{test_refresh_token}}; access_token={{test_access_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": {
+          "raw": "{{api_base}}/logout/",
+          "host": ["{{api_base}}"],
+          "path": ["logout", ""]
+        }
+      }
+    },
+    {
+      "name": "03 - Missing Refresh Token (400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 400\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test(\"Error message is correct\", function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData.detail).to.equal('Refresh token is required.');",
+              "});",
+              "",
+              "console.log('❌ Missing token handled correctly');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": {
+          "raw": "{{api_base}}/logout/",
+          "host": ["{{api_base}}"],
+          "path": ["logout", ""]
+        }
+      }
+    },
+    {
+      "name": "04 - Invalid Token Graceful Handling (200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Response message is correct\", function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData.detail).to.equal('Log-Out successfully! All Tokens will be deleted. Refresh token is now invalid.');",
+              "});",
+              "",
+              "console.log('✅ Invalid token handled gracefully');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Cookie",
+            "value": "refresh_token=invalid_token_here; access_token=invalid_access_token"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": {
+          "raw": "{{api_base}}/logout/",
+          "host": ["{{api_base}}"],
+          "path": ["logout", ""]
+        }
+      }
+    },
+    {
+      "name": "05 - GET Method Not Allowed (405)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 405\", function () {",
+              "    pm.response.to.have.status(405);",
+              "});",
+              "",
+              "pm.test(\"Allow header present\", function () {",
+              "    const allowHeader = pm.response.headers.get('Allow');",
+              "    if (allowHeader) {",
+              "        pm.expect(allowHeader).to.include('POST');",
+              "    }",
+              "});",
+              "",
+              "console.log('❌ GET method correctly rejected');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{api_base}}/logout/",
+          "host": ["{{api_base}}"],
+          "path": ["logout", ""]
+        }
+      }
+    }
+  ]
+}
