@@ -106,15 +106,6 @@ DATABASES = {
     }
 }
 
-# Use SQLite for local development when not using Docker
-if not os.environ.get('DJANGO_SETTINGS_DOCKER'):
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
-
 # Redis and RQ Configuration
 CACHES = {
     "default": {
@@ -126,14 +117,6 @@ CACHES = {
         "KEY_PREFIX": "videoflix"
     }
 }
-
-# Use dummy cache for local development when not using Docker
-if not os.environ.get('DJANGO_SETTINGS_DOCKER'):
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
-        }
-    }
 
 RQ_QUEUES = {
     'default': {
