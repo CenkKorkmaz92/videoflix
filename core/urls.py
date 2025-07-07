@@ -18,12 +18,17 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from .views import HomeView, DashboardView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/auth/', include('authentication.urls')),
-    path('api/videos/', include('videos.urls')),
+    # API endpoints to match frontend expectations
+    path('api/', include('authentication.urls')),  # Direct API auth endpoints
+    path('api/', include('videos.urls')),          # Direct API video endpoints
     path('api/content/', include('content.urls')),
+    # Frontend views (optional - for Django templates approach)
+    path('', HomeView.as_view(), name='home'),
+    path('dashboard/', DashboardView.as_view(), name='dashboard'),
 ]
 
 # Serve media files in development

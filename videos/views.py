@@ -146,3 +146,83 @@ def delete_video(request, video_id):
     
     video.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def hls_manifest(request, movie_id, resolution):
+    """
+    Serve HLS manifest file for video streaming.
+    """
+    from django.http import HttpResponse, Http404
+    import os
+    from django.conf import settings
+    
+    try:
+        video = Video.objects.get(id=movie_id, is_processed=True)
+    except Video.DoesNotExist:
+        raise Http404("Video not found")
+    
+    # Build path to HLS manifest file
+    manifest_path = os.path.join(
+        settings.MEDIA_ROOT, 
+        'videos', 
+        'hls', 
+        str(video.id), 
+        resolution, 
+        'index.m3u8'
+    )
+    
+    if not os.path.exists(manifest_path):
+        raise Http404("Manifest not found")
+    
+    try:
+        with open(manifest_path, 'r') as f:
+            content = f.read()
+        
+        response = HttpResponse(content, content_type='application/vnd.apple.mpegurl')
+        response['Cache-Control'] = 'no-cache'
+        return response
+        
+    except Exception:
+        raise Http404("Error reading manifest")
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def hls_segment(request, movie_id, resolution, segment):
+    """
+    Serve HLS video segments for streaming.
+    """
+    from django.http import HttpResponse, Http404
+    import os
+    from django.conf import settings
+    
+    try:
+        video = Video.objects.get(id=movie_id, is_processed=True)
+    except Video.DoesNotExist:
+        raise Http404("Video not found")
+    
+    # Build path to segment file
+    segment_path = os.path.join(
+        settings.MEDIA_ROOT, 
+        'videos', 
+        'hls', 
+        str(video.id), 
+        resolution, 
+        segment
+    )
+    
+    if not os.path.exists(segment_path):
+        raise Http404("Segment not found")
+    
+    try:
+        with open(segment_path, 'rb') as f:
+            content = f.read()
+        
+        response = HttpResponse(content, content_type='video/MP2T')
+        response['Cache-Control'] = 'max-age=3600'  # Cache segments for 1 hour
+        return response
+        
+    except Exception:
+        raise Http404("Error reading segment")

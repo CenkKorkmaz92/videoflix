@@ -15,14 +15,14 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         write_only=True, 
         style={'input_type': 'password'}
     )
-    password_confirm = serializers.CharField(
+    confirmed_password = serializers.CharField(
         write_only=True, 
         style={'input_type': 'password'}
     )
     
     class Meta:
         model = User
-        fields = ['email', 'first_name', 'last_name', 'password', 'password_confirm']
+        fields = ['email', 'first_name', 'last_name', 'password', 'confirmed_password']
     
     def validate_email(self, value):
         """Validate email format and uniqueness."""
@@ -52,16 +52,16 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     
     def validate(self, attrs):
         """Validate password confirmation."""
-        if attrs['password'] != attrs['password_confirm']:
+        if attrs['password'] != attrs['confirmed_password']:
             raise serializers.ValidationError({
-                'password_confirm': 'Passwords do not match.'
+                'confirmed_password': 'Passwords do not match.'
             })
         
         return attrs
     
     def create(self, validated_data):
         """Create new user."""
-        validated_data.pop('password_confirm')
+        validated_data.pop('confirmed_password')
         user = User.objects.create_user(**validated_data)
         return user
 
