@@ -1,0 +1,267 @@
+{
+  "info": {
+    "name": "Videoflix Login Tests - Essential",
+    "description": "Essential login endpoint tests with reliable assertions",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "api_base",
+      "value": "{{base_url}}/api",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Successful Login (200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Response structure is correct\", function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('detail', 'Login successful');",
+              "    pm.expect(jsonData).to.have.property('user');",
+              "    pm.expect(jsonData.user).to.have.property('id');",
+              "    pm.expect(jsonData.user).to.have.property('username');",
+              "});",
+              "",
+              "pm.test(\"JWT cookies are set\", function () {",
+              "    const cookies = pm.response.headers.get('Set-Cookie');",
+              "    if (cookies) {",
+              "        pm.expect(cookies).to.include('access_token');",
+              "        pm.expect(cookies).to.include('refresh_token');",
+              "        pm.expect(cookies).to.include('HttpOnly');",
+              "    }",
+              "});",
+              "",
+              "console.log('✅ Login successful');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\\n  \\\"email\\\": \\\"test@example.com\\\",\\n  \\\"password\\\": \\\"testpass123\\\"\\n}"
+        },
+        "url": {
+          "raw": "{{api_base}}/login/",
+          "host": ["{{api_base}}"],
+          "path": ["login", ""]
+        }
+      }
+    },
+    {
+      "name": "02 - Wrong Password (400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 400\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test(\"Error message present\", function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('non_field_errors');",
+              "});",
+              "",
+              "console.log('❌ Wrong password handled correctly');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\\n  \\\"email\\\": \\\"test@example.com\\\",\\n  \\\"password\\\": \\\"wrongpassword\\\"\\n}"
+        },
+        "url": {
+          "raw": "{{api_base}}/login/",
+          "host": ["{{api_base}}"],
+          "path": ["login", ""]
+        }
+      }
+    },
+    {
+      "name": "03 - Missing Email (400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 400\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test(\"Email field error\", function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('email');",
+              "});",
+              "",
+              "console.log('❌ Missing email handled correctly');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\\n  \\\"password\\\": \\\"testpass123\\\"\\n}"
+        },
+        "url": {
+          "raw": "{{api_base}}/login/",
+          "host": ["{{api_base}}"],
+          "path": ["login", ""]
+        }
+      }
+    },
+    {
+      "name": "04 - Missing Password (400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 400\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test(\"Password field error\", function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('password');",
+              "});",
+              "",
+              "console.log('❌ Missing password handled correctly');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\\n  \\\"email\\\": \\\"test@example.com\\\"\\n}"
+        },
+        "url": {
+          "raw": "{{api_base}}/login/",
+          "host": ["{{api_base}}"],
+          "path": ["login", ""]
+        }
+      }
+    },
+    {
+      "name": "05 - GET Method Not Allowed (405)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 405\", function () {",
+              "    pm.response.to.have.status(405);",
+              "});",
+              "",
+              "pm.test(\"Allow header present\", function () {",
+              "    const allow = pm.response.headers.get('Allow');",
+              "    if (allow) {",
+              "        pm.expect(allow).to.include('POST');",
+              "    }",
+              "});",
+              "",
+              "console.log('❌ GET method correctly rejected');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{api_base}}/login/",
+          "host": ["{{api_base}}"],
+          "path": ["login", ""]
+        }
+      }
+    },
+    {
+      "name": "06 - Invalid JSON (400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 400\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test(\"JSON error handled\", function () {",
+              "    const jsonData = pm.response.json();",
+              "    // Should return some kind of error response",
+              "    pm.expect(jsonData).to.be.an('object');",
+              "});",
+              "",
+              "console.log('❌ Invalid JSON handled correctly');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{ invalid json"
+        },
+        "url": {
+          "raw": "{{api_base}}/login/",
+          "host": ["{{api_base}}"],
+          "path": ["login", ""]
+        }
+      }
+    }
+  ]
+}

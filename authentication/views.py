@@ -97,7 +97,15 @@ def activate_account(request, uidb64, token):
 def login_user(request):
     """
     Login user and return JWT tokens with HttpOnly cookies.
+    Only accepts JSON content type.
     """
+    # Check content type
+    content_type = request.content_type
+    if content_type and 'application/json' not in content_type:
+        return Response({
+            'detail': 'Content-Type must be application/json'
+        }, status=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
+    
     serializer = UserLoginSerializer(data=request.data, context={'request': request})
     if serializer.is_valid():
         user = serializer.validated_data['user']
