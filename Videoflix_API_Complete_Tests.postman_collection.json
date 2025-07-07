@@ -1,0 +1,240 @@
+{
+  "info": {
+    "name": "Videoflix API Complete Tests",
+    "description": "Complete test collection for Videoflix API with login, registration, and JWT authentication",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "api_base",
+      "value": "{{base_url}}/api",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication Tests",
+      "item": [
+        {
+          "name": "01. Login - Valid Credentials",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains correct structure\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('detail', 'Login successful');",
+                  "    pm.expect(jsonData).to.have.property('user');",
+                  "    pm.expect(jsonData.user).to.have.property('id');",
+                  "    pm.expect(jsonData.user).to.have.property('username');",
+                  "});",
+                  "",
+                  "pm.test(\"HttpOnly cookies are set\", function () {",
+                  "    const cookies = pm.response.headers.get('Set-Cookie');",
+                  "    pm.expect(cookies).to.include('access_token');",
+                  "    pm.expect(cookies).to.include('refresh_token');",
+                  "    pm.expect(cookies).to.include('HttpOnly');",
+                  "});",
+                  "",
+                  "pm.test(\"Username is email\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.user.username).to.equal('test@example.com');",
+                  "});",
+                  "",
+                  "// Extract tokens from cookies for future requests",
+                  "const setCookieHeader = pm.response.headers.get('Set-Cookie');",
+                  "if (setCookieHeader) {",
+                  "    const accessTokenMatch = setCookieHeader.match(/access_token=([^;]+)/);",
+                  "    const refreshTokenMatch = setCookieHeader.match(/refresh_token=([^;]+)/);",
+                  "    ",
+                  "    if (accessTokenMatch) {",
+                  "        pm.collectionVariables.set('access_token', accessTokenMatch[1]);",
+                  "    }",
+                  "    if (refreshTokenMatch) {",
+                  "        pm.collectionVariables.set('refresh_token', refreshTokenMatch[1]);",
+                  "    }",
+                  "}",
+                  "",
+                  "console.log('Login Response:', pm.response.text());",
+                  "console.log('Set-Cookie Header:', setCookieHeader);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"TestPass123\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base}}/login/",
+              "host": ["{{api_base}}"],
+              "path": ["login", ""]
+            }
+          }
+        },
+        {
+          "name": "02. Login - Invalid Credentials",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message is present\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('non_field_errors');",
+                  "    pm.expect(jsonData.non_field_errors[0]).to.equal('Please check your input and try again.');",
+                  "});",
+                  "",
+                  "console.log('Invalid login response:', pm.response.text());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"wrongpassword\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base}}/login/",
+              "host": ["{{api_base}}"],
+              "path": ["login", ""]
+            }
+          }
+        },
+        {
+          "name": "03. Login - Nonexistent User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message is present\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('non_field_errors');",
+                  "    pm.expect(jsonData.non_field_errors[0]).to.equal('Please check your input and try again.');",
+                  "});",
+                  "",
+                  "console.log('Nonexistent user response:', pm.response.text());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"nonexistent@example.com\",\n  \"password\": \"TestPass123\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base}}/login/",
+              "host": ["{{api_base}}"],
+              "path": ["login", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Registration Tests",
+      "item": [
+        {
+          "name": "01. Register - Valid (New Email)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has user object\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('user');",
+                  "    pm.expect(jsonData.user).to.have.property('id');",
+                  "    pm.expect(jsonData.user).to.have.property('email');",
+                  "});",
+                  "",
+                  "pm.test(\"Response has token\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('token');",
+                  "});",
+                  "",
+                  "console.log('Registration response:', pm.response.text());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser{{$timestamp}}@example.com\",\n  \"password\": \"TestPass123\",\n  \"confirmed_password\": \"TestPass123\",\n  \"first_name\": \"Test\",\n  \"last_name\": \"User\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base}}/register/",
+              "host": ["{{api_base}}"],
+              "path": ["register", ""]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

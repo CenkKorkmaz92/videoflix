@@ -3,6 +3,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
+from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model, login, logout
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -95,22 +96,47 @@ def activate_account(request, uidb64, token):
 @permission_classes([AllowAny])
 def login_user(request):
     """
-    Login user and return authentication token.
+    Login user and return JWT tokens with HttpOnly cookies.
     """
     serializer = UserLoginSerializer(data=request.data, context={'request': request})
     if serializer.is_valid():
         user = serializer.validated_data['user']
         
-        # Create or get authentication token
-        token, created = Token.objects.get_or_create(user=user)
+        # Generate JWT tokens
+        refresh = RefreshToken.for_user(user)
+        access_token = refresh.access_token
         
-        # Django session login
-        login(request, user)
+        # Create response with required format
+        response_data = {
+            'detail': 'Login successful',
+            'user': {
+                'id': user.id,
+                'username': user.email  # Using email as username as per documentation
+            }
+        }
         
-        return Response({
-            'token': token.key,
-            'user': UserProfileSerializer(user).data
-        }, status=status.HTTP_200_OK)
+        response = Response(response_data, status=status.HTTP_200_OK)
+        
+        # Set HttpOnly cookies for tokens
+        response.set_cookie(
+            'access_token',
+            str(access_token),
+            max_age=3600,  # 1 hour
+            httponly=True,
+            secure=False,  # Set to True in production with HTTPS
+            samesite='Lax'
+        )
+        
+        response.set_cookie(
+            'refresh_token',
+            str(refresh),
+            max_age=604800,  # 7 days
+            httponly=True,
+            secure=False,  # Set to True in production with HTTPS
+            samesite='Lax'
+        )
+        
+        return response
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -119,20 +145,27 @@ def login_user(request):
 @permission_classes([IsAuthenticated])
 def logout_user(request):
     """
-    Logout user and delete authentication token.
+    Logout user and clear JWT cookies.
     """
     try:
-        # Delete user's token
-        request.user.auth_token.delete()
-    except:
+        # Try to blacklist the refresh token if it exists in cookies
+        refresh_token = request.COOKIES.get('refresh_token')
+        if refresh_token:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+    except Exception:
         pass
     
-    # Django session logout
-    logout(request)
-    
-    return Response({
+    # Create response
+    response = Response({
         'message': 'Logout successful.'
     }, status=status.HTTP_200_OK)
+    
+    # Clear cookies
+    response.delete_cookie('access_token')
+    response.delete_cookie('refresh_token')
+    
+    return response
 
 
 @api_view(['POST'])
