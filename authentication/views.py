@@ -295,14 +295,49 @@ def get_user_profile(request):
 @permission_classes([AllowAny])
 def refresh_token(request):
     """
-    Refresh JWT token using refresh token cookie.
+    Refresh JWT access token using refresh token cookie.
+    Returns new access token and sets it as HttpOnly cookie.
     """
-    # For now, using simple token auth - this would need JWT implementation
-    # This is a placeholder that matches the expected response format
-    return Response({
-        'detail': 'Token refreshed',
-        'access': 'new_access_token'  # This would be a real JWT token
-    }, status=status.HTTP_200_OK)
+    # Check if refresh token exists in cookies
+    refresh_token_value = request.COOKIES.get('refresh_token')
+    
+    if not refresh_token_value:
+        return Response({
+            'detail': 'Refresh token is required.'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        # Validate and decode the refresh token
+        refresh_token = RefreshToken(refresh_token_value)
+        
+        # Generate new access token from the refresh token
+        new_access_token = refresh_token.access_token
+        
+        # Create response with required format
+        response_data = {
+            'detail': 'Token refreshed',
+            'access': str(new_access_token)
+        }
+        
+        response = Response(response_data, status=status.HTTP_200_OK)
+        
+        # Set new access token as HttpOnly cookie
+        response.set_cookie(
+            'access_token',
+            str(new_access_token),
+            max_age=3600,  # 1 hour
+            httponly=True,
+            secure=False,  # Set to True in production with HTTPS
+            samesite='Lax'
+        )
+        
+        return response
+        
+    except Exception as e:
+        # Invalid or expired refresh token
+        return Response({
+            'detail': 'Invalid or expired refresh token.'
+        }, status=status.HTTP_401_UNAUTHORIZED)
 
 
 @api_view(['POST'])
