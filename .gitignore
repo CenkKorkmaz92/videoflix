@@ -201,3 +201,23 @@ $RECYCLE.BIN/
 
 # Documentation
 jsdoc.json
+
+# ===== TEST FILES & COLLECTIONS =====
+# Python test scripts
+test_*.py
+*_test.py
+*test*.py
+
+# Postman collections
+*.postman_collection.json
+*.postman_environment.json
+
+# Test results and reports
+*test_results*.json
+*test_report*.json
+*test_output*.txt
+
+# Test documentation
+*TEST*.md
+*_TEST_*.md
+*IMPLEMENTATION*.md
