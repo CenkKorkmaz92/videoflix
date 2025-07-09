@@ -6,12 +6,11 @@ from rest_framework.authtoken.models import Token
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model, login, logout
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.contrib.auth.tokens import default_token_generator
-from datetime import timedelta
 from django.http import JsonResponse
+from django.conf import settings
 
 from .serializers import (
     UserRegistrationSerializer,
@@ -20,9 +19,8 @@ from .serializers import (
     PasswordResetSerializer,
     UserProfileSerializer
 )
-from .models import EmailVerificationToken, PasswordResetToken
+from .models import EmailVerificationToken
 from .utils import (
-    generate_secure_token,
     send_verification_email,
     send_password_reset_email,
     get_user_by_email
@@ -45,8 +43,12 @@ def register_user(request):
         token = default_token_generator.make_token(user)
         uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
         
+        # Convert uidb64 to string if it's bytes
+        if isinstance(uidb64, bytes):
+            uidb64 = uidb64.decode()
+        
         # Send verification email
-        send_verification_email(user, token)
+        send_verification_email(user, uidb64, token)
         
         return Response({
             'user': {
@@ -75,11 +77,11 @@ def activate_account(request, uidb64, token):
                 user.is_email_verified = True
                 user.save()
                 return Response({
-                    'message': 'Account successfully activated.'
+                    'detail': 'Account activated successfully'
                 }, status=status.HTTP_200_OK)
             else:
                 return Response({
-                    'message': 'Account is already activated.'
+                    'detail': 'Account is already activated.'
                 }, status=status.HTTP_200_OK)
         else:
             return Response({
@@ -171,7 +173,7 @@ def logout_user(request):
         
         # Create success response
         response = Response({
-            'detail': 'Log-Out successfully! All Tokens will be deleted. Refresh token is now invalid.'
+            'detail': 'Logout successful'
         }, status=status.HTTP_200_OK)
         
         # Clear cookies with proper attributes
@@ -192,7 +194,7 @@ def logout_user(request):
         # If token is invalid or already blacklisted, still clear cookies and return success
         # This prevents enumeration attacks and provides better UX
         response = Response({
-            'detail': 'Log-Out successfully! All Tokens will be deleted. Refresh token is now invalid.'
+            'detail': 'Logout successful'
         }, status=status.HTTP_200_OK)
         
         # Clear cookies anyway
@@ -222,15 +224,16 @@ def request_password_reset(request):
         user = get_user_by_email(email)
         
         if user:
-            # Delete old reset tokens
-            PasswordResetToken.objects.filter(user=user, used=False).delete()
+            # Create reset token using Django's built-in token generator (same as activation)
+            token = default_token_generator.make_token(user)
+            uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
             
-            # Create new reset token
-            token = generate_secure_token()
-            PasswordResetToken.objects.create(user=user, token=token)
+            # Convert uidb64 to string if it's bytes
+            if isinstance(uidb64, bytes):
+                uidb64 = uidb64.decode()
             
-            # Send reset email
-            send_password_reset_email(user, token)
+            # Send reset email with uidb64 and token
+            send_password_reset_email(user, uidb64, token)
             
             # Return success only if user exists
             return Response({
@@ -244,46 +247,6 @@ def request_password_reset(request):
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def reset_password(request, token):
-    """
-    Reset password with token.
-    """
-    serializer = PasswordResetSerializer(data=request.data)
-    if serializer.is_valid():
-        try:
-            reset_token = PasswordResetToken.objects.get(
-                token=token, 
-                used=False
-            )
-            
-            # Check if token is not expired (24 hours)
-            if reset_token.created_at < timezone.now() - timedelta(hours=24):
-                return Response({
-                    'error': 'Reset token has expired.'
-                }, status=status.HTTP_400_BAD_REQUEST)
-            
-            # Reset password
-            user = reset_token.user
-            user.set_password(serializer.validated_data['password'])
-            user.save()
-            
-            # Mark token as used
-            reset_token.used = True
-            reset_token.save()
-            
-            return Response({
-                'message': 'Password reset successful.'
-            }, status=status.HTTP_200_OK)
-            
-        except PasswordResetToken.DoesNotExist:
-            return Response({
-                'error': 'Invalid reset token.'
-            }, status=status.HTTP_400_BAD_REQUEST)
-    
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['GET'])
@@ -320,7 +283,7 @@ def refresh_token(request):
         
         # Create response with required format
         response_data = {
-            'detail': 'Token refreshed',
+            'detail': 'Token refreshed successfully',
             'access': str(new_access_token)
         }
         
@@ -384,3 +347,37 @@ def confirm_password_reset(request, uidb64, token):
         return Response({
             'error': 'Invalid reset link.'
         }, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_reset_token_for_testing(request, uidb64):
+    """
+    Test-only endpoint to get reset token for a user.
+    Only available in DEBUG mode for testing purposes.
+    """
+    if not settings.DEBUG:
+        return Response(
+            {'detail': 'This endpoint is only available in debug mode.'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    try:
+        # Decode the user ID
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+        
+        # Generate reset token
+        token = default_token_generator.make_token(user)
+        
+        return Response({
+            'reset_token': token,
+            'uidb64': uidb64,
+            'user_id': user.id
+        }, status=status.HTTP_200_OK)
+        
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        return Response(
+            {'detail': 'Invalid user ID.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )

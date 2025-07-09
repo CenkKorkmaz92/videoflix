@@ -27,12 +27,13 @@ def generate_secure_token(length: int = 32) -> str:
     return ''.join(secrets.choice(alphabet) for _ in range(length))
 
 
-def send_verification_email(user, token: str) -> bool:
+def send_verification_email(user, uidb64: str, token: str) -> bool:
     """
     Send email verification email to user.
     
     Args:
         user: User instance
+        uidb64: Base64 encoded user ID
         token: Verification token
         
     Returns:
@@ -40,7 +41,7 @@ def send_verification_email(user, token: str) -> bool:
     """
     try:
         subject = 'Verify your Videoflix account'
-        verification_url = f"{settings.FRONTEND_URL}/verify-email/{token}"
+        verification_url = f"{settings.FRONTEND_URL}/activate/{uidb64}/{token}"
         
         html_message = render_to_string('emails/verify_email.html', {
             'user': user,
@@ -60,12 +61,13 @@ def send_verification_email(user, token: str) -> bool:
         return False
 
 
-def send_password_reset_email(user, token: str) -> bool:
+def send_password_reset_email(user, uidb64: str, token: str) -> bool:
     """
     Send password reset email to user.
     
     Args:
         user: User instance
+        uidb64: Base64 encoded user ID
         token: Reset token
         
     Returns:
@@ -73,7 +75,7 @@ def send_password_reset_email(user, token: str) -> bool:
     """
     try:
         subject = 'Reset your Videoflix password'
-        reset_url = f"{settings.FRONTEND_URL}/reset-password/{token}"
+        reset_url = f"{settings.FRONTEND_URL}/password-confirm/{uidb64}/{token}"
         
         html_message = render_to_string('emails/password_reset.html', {
             'user': user,
