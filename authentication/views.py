@@ -231,11 +231,16 @@ def request_password_reset(request):
             
             # Send reset email
             send_password_reset_email(user, token)
-        
-        # Always return success for security
-        return Response({
-            'message': 'If the email exists, a password reset link has been sent.'
-        }, status=status.HTTP_200_OK)
+            
+            # Return success only if user exists
+            return Response({
+                'detail': 'An email has been sent to reset your password.'
+            }, status=status.HTTP_200_OK)
+        else:
+            # Return error if email doesn't exist (as per API specification)
+            return Response({
+                'detail': 'No user found with this email address.'
+            }, status=status.HTTP_400_BAD_REQUEST)
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
