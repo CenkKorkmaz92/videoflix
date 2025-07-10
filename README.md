@@ -1,53 +1,101 @@
-# Videoflix Backend
+# Videoflix
 
-A comprehensive Django-based video streaming platform backend built with clean code principles and modern best practices.
+A Django-based video streaming platform with HLS video delivery and JWT authentication.
+
+## Project Overview
+
+This project consists of a Django backend API and an integrated frontend for video streaming. The backend provides user authentication, video management, and HLS (HTTP Live Streaming) video delivery.
 
 ## Features
 
 ### 🔐 Authentication & Authorization
-- **Custom User Model**: Email-based authentication with verification
-- **JWT Token Authentication**: Secure API access with refresh tokens
-- **Email Verification**: User account activation via email
+- **Custom User Model**: Email-based authentication (no username)
+- **JWT Cookie Authentication**: HttpOnly cookies for secure token management
+- **Email Verification**: Account activation via email links
 - **Password Reset**: Secure password reset flow via email
-- **User Management**: Profile management and user preferences
 
-### 🎬 Video Management
-- **Video Upload**: Support for multiple video formats (MP4, AVI, MOV, MKV, WMV, FLV, WebM)
-- **Video Processing**: Background processing with multiple quality versions
-- **Thumbnail Generation**: Automatic thumbnail creation from video frames
-- **Genre Classification**: Organize videos by genres with slug-based URLs
-- **Search & Filtering**: Full-text search and genre-based filtering
+### 🎬 Video Management & Streaming
+- **HLS Video Streaming**: Adaptive bitrate streaming with multiple resolutions
+- **Video Upload**: Support for video file uploads with FFmpeg processing
+- **Genre Classification**: Organize videos by categories
+- **Video Metadata**: Title, description, thumbnails, duration tracking
 
-### 📊 User Experience
-- **Watch Progress**: Track viewing progress and resume functionality
-- **Dashboard**: Personalized content recommendations
-- **Continue Watching**: Resume videos from where users left off
-- **Video Quality Selection**: Multiple quality options for different bandwidth
+### 🎥 Video API Endpoints
+- **GET /api/video/**: List all available videos with metadata
+- **GET /api/video/{id}/{resolution}/index.m3u8**: HLS manifest for specific video/resolution
+- **GET /api/video/{id}/{resolution}/{segment}**: HLS video segments
 
-### 📄 Content Management
-- **Legal Pages**: Privacy policy, imprint, and other static content
-- **Admin Interface**: Django admin for content management
-- **API Documentation**: RESTful API with comprehensive endpoints
+### � Frontend Integration
+- **Responsive Design**: Mobile-friendly video streaming interface
+- **HLS.js Player**: Modern video player with quality selection
+- **Authentication UI**: Registration, login, and activation pages
 
 ## Technology Stack
 
+### Backend
 - **Framework**: Django 5.2.4 with Django REST Framework
 - **Database**: PostgreSQL with psycopg2-binary
-- **Caching**: Redis for session management and caching
-- **Background Tasks**: Django RQ with Redis Queue
-- **File Storage**: Local media storage with static file serving
-- **Video Processing**: MoviePy for video manipulation
-- **Authentication**: JWT tokens with djangorestframework-simplejwt
+- **Authentication**: Custom JWT with HttpOnly cookies
 - **CORS**: Django CORS headers for frontend integration
-- **Testing**: pytest with coverage reporting
+- **Background Tasks**: Django RQ with Redis Queue
+- **Email**: Console backend for development
+
+### Frontend
+- **HTML/CSS/JavaScript**: Vanilla JavaScript with modern ES6+
+- **Video Player**: HLS.js for adaptive video streaming
+- **Styling**: Custom CSS with responsive design
+- **API Integration**: Fetch API with JWT cookie authentication
+
+## Project Structure
+
+```
+videoflix/
+├── authentication/          # User authentication app
+│   ├── models.py           # Custom user model
+│   ├── serializers.py      # Authentication serializers  
+│   ├── views.py            # Auth API endpoints
+│   ├── jwt_authentication.py # Custom JWT cookie auth
+│   └── urls.py             # Authentication routes
+├── videos/                 # Video management app
+│   ├── models.py           # Video and Genre models
+│   ├── serializers.py      # Video serializers
+│   ├── views.py            # Video API endpoints
+│   └── urls.py             # Video routes
+├── content/                # Static content management
+├── core/                   # Main project configuration
+│   ├── settings.py         # Django settings
+│   └── urls.py             # Main URL configuration
+├── assets/                 # Frontend assets (icons, images, fonts)
+│   ├── fonts/              # Font files
+│   ├── icons/              # Icon assets
+│   └── img/                # Image assets
+├── pages/                  # HTML pages
+│   ├── auth/               # Authentication pages
+│   ├── video_list/         # Video listing page
+│   ├── imprint/            # Legal imprint page
+│   └── privacy/            # Privacy policy page
+├── shared/                 # Shared frontend resources
+│   ├── css/                # Shared CSS files
+│   └── js/                 # Shared JavaScript files
+├── tests/                  # Test files and documentation
+│   ├── test_*.py           # Python test scripts
+│   ├── *.postman_collection.json # Postman API collections
+│   └── debug_*.py          # Debug utilities
+├── docs/                   # Project documentation
+│   └── jsdoc/              # Generated JavaScript documentation
+├── index.html              # Landing page
+├── styles.css              # Main stylesheet
+├── script.js               # Main JavaScript file
+└── manage.py               # Django management script
+```
 
 ## Installation & Setup
 
 ### Prerequisites
 - Python 3.8+
 - PostgreSQL 12+
-- Redis Server
-- FFmpeg (for video processing)
+- Redis Server (optional - for background tasks)
+- FFmpeg (optional - for video processing)
 
 ### Local Development Setup
 
@@ -60,7 +108,8 @@ A comprehensive Django-based video streaming platform backend built with clean c
 2. **Create virtual environment**
    ```bash
    python -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   .venv\Scripts\activate  # Windows
+   # source .venv/bin/activate  # Mac/Linux
    ```
 
 3. **Install dependencies**
@@ -71,7 +120,7 @@ A comprehensive Django-based video streaming platform backend built with clean c
 4. **Environment configuration**
    ```bash
    cp .env.template .env
-   # Edit .env with your configuration
+   # Edit .env with your database and email settings
    ```
 
 5. **Database setup**
@@ -81,20 +130,25 @@ A comprehensive Django-based video streaming platform backend built with clean c
    python manage.py createsuperuser
    ```
 
-6. **Run Redis server**
-   ```bash
-   redis-server
-   ```
-
-7. **Start Django RQ worker** (in separate terminal)
-   ```bash
-   python manage.py rqworker default
-   ```
-
-8. **Run development server**
+6. **Run development server**
    ```bash
    python manage.py runserver
    ```
+
+7. **Access the application**
+   - Backend API: http://127.0.0.1:8000/api/
+   - Frontend: Open `index.html` in browser or serve with local server
+
+### Serving Frontend Properly
+
+For full functionality, serve the frontend with a local web server:
+
+```bash
+# Python built-in server
+python -m http.server 3000
+
+# Then update CORS settings in Django to allow http://localhost:3000
+```
 
 ### Environment Variables
 
@@ -107,137 +161,116 @@ DEBUG=True
 ALLOWED_HOSTS=localhost,127.0.0.1
 
 # Database
-DB_NAME=videoflix
-DB_USER=your-db-user
-DB_PASSWORD=your-db-password
-DB_HOST=localhost
+DB_NAME=videoflix_db
+DB_USER=videoflix_user
+DB_PASSWORD=supersecretpassword
+DB_HOST=localhost  # or 'db' for Docker
 DB_PORT=5432
 
-# Redis
-REDIS_URL=redis://localhost:6379/0
+# Redis (optional for background tasks)
+REDIS_LOCATION=redis://localhost:6379/1
 
-# Email Configuration
+# Email Configuration (for development - console backend)
+EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USE_TLS=True
 EMAIL_HOST_USER=your-email@gmail.com
 EMAIL_HOST_PASSWORD=your-app-password
 
-# Frontend URL
+# Frontend URL (for email links)
 FRONTEND_URL=http://localhost:3000
 ```
 
 ## API Documentation
 
 ### Authentication Endpoints
-- `POST /api/auth/register/` - User registration
-- `POST /api/auth/login/` - User login
-- `POST /api/auth/logout/` - User logout
-- `POST /api/auth/verify-email/<token>/` - Email verification
-- `POST /api/auth/password-reset/` - Request password reset
-- `POST /api/auth/password-reset-confirm/` - Confirm password reset
-- `GET /api/auth/profile/` - Get user profile
-- `PUT /api/auth/profile/` - Update user profile
+- `POST /api/register/` - User registration
+- `GET /api/activate/<uidb64>/<token>/` - Email verification
+- `POST /api/login/` - User login (sets HttpOnly cookies)
+- `POST /api/logout/` - User logout (clears cookies)
+- `POST /api/token/refresh/` - Refresh JWT token
+- `POST /api/password_reset/` - Request password reset
+- `POST /api/password_confirm/<uidb64>/<token>/` - Confirm password reset
 
-### Video Endpoints
-- `GET /api/videos/` - List videos (with search and filtering)
-- `GET /api/videos/<id>/` - Get video details
-- `POST /api/videos/upload/` - Upload new video
-- `DELETE /api/videos/<id>/delete/` - Delete video
-- `GET /api/videos/genres/` - List genres
-- `GET /api/videos/dashboard/` - Dashboard data
-- `POST /api/videos/<id>/progress/` - Update watch progress
-- `GET /api/videos/progress/` - Get user's watch progress
+### Video Endpoints (Authentication Required)
+- `GET /api/video/` - List all videos with metadata
+- `GET /api/video/<int:movie_id>/<str:resolution>/index.m3u8` - HLS manifest
+- `GET /api/video/<int:movie_id>/<str:resolution>/<str:segment>` - HLS segments
 
 ### Content Endpoints
-- `GET /api/content/` - List content pages
-- `GET /api/content/<slug>/` - Get content page by slug
+- `GET /api/content/` - List content pages  
+- `GET /api/content/<slug>/` - Get specific content page
 
-## Project Structure
+## Development Notes
 
-```
-videoflix/
-├── authentication/          # User authentication app
-│   ├── models.py           # Custom user model
-│   ├── serializers.py      # Authentication serializers
-│   ├── views.py            # Authentication views
-│   ├── utils.py            # Email and utility functions
-│   └── urls.py             # Authentication routes
-├── videos/                 # Video management app
-│   ├── models.py           # Video, Genre, Quality models
-│   ├── serializers.py      # Video serializers
-│   ├── views.py            # Video views and APIs
-│   ├── utils.py            # Video processing utilities
-│   └── urls.py             # Video routes
-├── content/                # Static content app
-│   ├── models.py           # Content page model
-│   ├── serializers.py      # Content serializers
-│   ├── views.py            # Content views
-│   └── urls.py             # Content routes
-├── core/                   # Main project configuration
-│   ├── settings.py         # Django settings
-│   ├── urls.py             # Main URL configuration
-│   └── wsgi.py             # WSGI configuration
-├── media/                  # User uploaded files
-├── static/                 # Static files
-├── requirements.txt        # Python dependencies
-└── manage.py               # Django management script
-```
+### Frontend Integration
+- Frontend files are located in the project root (not in a separate `frontend/` folder)
+- All paths in HTML files use absolute paths (`/shared/css/...`) which require a web server
+- For development, serve frontend with: `python -m http.server 3000`
+- Update Django CORS settings to allow your frontend URL
+
+### Authentication Flow
+1. User registers via frontend form
+2. Backend sends activation email (console in development)
+3. User clicks activation link to verify email
+4. User can then login and receive JWT cookies
+5. Protected routes require valid JWT cookie
+
+### Video Streaming
+- Videos are served via HLS (HTTP Live Streaming)
+- Multiple resolutions supported (480p, 720p, 1080p)
+- Uses HLS.js library for browser compatibility
+- Authentication required for all video endpoints
+
+## Documentation
+
+- **API Documentation**: Available through Django REST Framework browsable API at `/api/`
+- **JavaScript Documentation**: Generated JSDoc files in `docs/jsdoc/`
+- **Test Documentation**: Comprehensive test suites and Postman collections in `tests/`
 
 ## Testing
 
-Run the test suite:
+Test files and documentation are located in the `tests/` folder:
 
 ```bash
-# Run all tests
+# Run Django tests
 python manage.py test
 
-# Run specific app tests
-python manage.py test authentication
-python manage.py test videos
-python manage.py test content
-
-# Run with coverage
-pytest --cov=. --cov-report=html
+# Test files are in tests/ directory including:
+# - Python test scripts (test_*.py)
+# - Postman API collections (*.postman_collection.json)  
+# - Debug utilities (debug_*.py)
+# - Authentication flow tests
+# - Video API tests
 ```
 
-## Code Quality
+## Docker Deployment
 
-This project follows clean code principles:
+```bash
+# Build and run with Docker Compose
+docker-compose up --build
 
-- **Single Responsibility**: Each function/class has one clear purpose
-- **Descriptive Naming**: Functions and variables use clear, descriptive names
-- **Short Functions**: Functions are kept under 20 lines when possible
-- **Type Hints**: Python type hints for better code documentation
-- **Docstrings**: Comprehensive documentation for all functions and classes
-- **Snake Case**: Python naming convention throughout
-- **DRY Principle**: Don't Repeat Yourself - reusable utility functions
+# Run migrations in container
+docker-compose exec web python manage.py migrate
+docker-compose exec web python manage.py createsuperuser
+```
 
-## Deployment
+## Troubleshooting
 
-### Docker Deployment
+### Common Issues
 
-1. **Build and run with Docker Compose**
-   ```bash
-   docker-compose up --build
-   ```
+1. **Frontend not loading**: Serve with web server, don't open HTML files directly
+2. **CORS errors**: Update `CORS_ALLOWED_ORIGINS` in Django settings
+3. **Registration not working**: Check that email backend is configured
+4. **Video streaming issues**: Ensure video files exist and authentication is working
 
-2. **Run migrations in container**
-   ```bash
-   docker-compose exec web python manage.py migrate
-   docker-compose exec web python manage.py createsuperuser
-   ```
-
-### Production Considerations
-
-- Use environment variables for all sensitive configuration
-- Enable HTTPS with SSL certificates
-- Configure proper CORS settings for your frontend domain
-- Set up proper logging and monitoring
-- Use a production WSGI server like Gunicorn
-- Configure static file serving with a web server like Nginx
-- Set up regular database backups
-- Monitor Redis memory usage and configure persistence
+### Debug Steps
+1. Check Django server is running on port 8000
+2. Verify database connection and migrations
+3. Test API endpoints directly with browser or Postman
+4. Check browser console for JavaScript errors
+5. Verify CORS settings match your frontend URL
 
 ## Contributing
 
@@ -246,11 +279,3 @@ This project follows clean code principles:
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Support
-
-For support and questions, please open an issue in the GitHub repository.

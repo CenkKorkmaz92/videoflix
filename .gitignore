@@ -129,6 +129,18 @@ package.json  # Remove this if you want to track package.json
 /dist/
 /build/
 
+# ===== FRONTEND FILES (MENTOR PROVIDED) =====
+# Frontend assets in root directory
+assets/
+pages/
+shared/
+index.html
+styles.css
+script.js
+
+# Frontend documentation
+docs/jsdoc/
+
 # ===== IDEs & EDITORS =====
 # Visual Studio Code
 .vscode/
@@ -203,6 +215,9 @@ $RECYCLE.BIN/
 jsdoc.json
 
 # ===== TEST FILES & COLLECTIONS =====
+# Test directory (contains all test files)
+tests/
+
 # Python test scripts
 test_*.py
 *_test.py
@@ -221,3 +236,7 @@ test_*.py
 *TEST*.md
 *_TEST_*.md
 *IMPLEMENTATION*.md
+
+# Debug scripts
+debug_*.py
+*debug*.py
