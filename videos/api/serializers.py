@@ -1,6 +1,6 @@
 from rest_framework import serializers
-from .models import Video, Genre, VideoQuality, WatchProgress
-from .utils import is_video_file
+from ..models import Video, Genre, VideoQuality, WatchProgress
+from ..utils import is_video_file
 
 
 class GenreSerializer(serializers.ModelSerializer):
@@ -27,14 +27,31 @@ class VideoListSerializer(serializers.ModelSerializer):
     Serializer for video list view.
     """
     genre = GenreSerializer(read_only=True)
-    thumbnail_url = serializers.ReadOnlyField()
+    category = serializers.CharField(source='genre.name', read_only=True)
+    thumbnail_url = serializers.SerializerMethodField()
+    video_file = serializers.SerializerMethodField()
     
     class Meta:
         model = Video
         fields = [
-            'id', 'title', 'description', 'genre', 
-            'thumbnail_url', 'duration', 'created_at'
+            'id', 'title', 'description', 'genre', 'category',
+            'thumbnail_url', 'video_file', 'duration', 'created_at'
         ]
+    
+    def get_thumbnail_url(self, obj):
+        """Return absolute URL for thumbnail."""
+        request = self.context.get('request')
+        thumbnail_url = obj.thumbnail_url
+        if request and thumbnail_url:
+            return request.build_absolute_uri(thumbnail_url)
+        return thumbnail_url
+    
+    def get_video_file(self, obj):
+        """Return absolute URL for video file."""
+        request = self.context.get('request')
+        if request and obj.video_file:
+            return request.build_absolute_uri(obj.video_file.url)
+        return obj.video_file.url if obj.video_file else None
 
 
 class VideoDetailSerializer(serializers.ModelSerializer):
@@ -42,15 +59,32 @@ class VideoDetailSerializer(serializers.ModelSerializer):
     Serializer for video detail view.
     """
     genre = GenreSerializer(read_only=True)
+    category = serializers.CharField(source='genre.name', read_only=True)
     qualities = VideoQualitySerializer(many=True, read_only=True)
-    thumbnail_url = serializers.ReadOnlyField()
+    thumbnail_url = serializers.SerializerMethodField()
+    video_file = serializers.SerializerMethodField()
     
     class Meta:
         model = Video
         fields = [
-            'id', 'title', 'description', 'genre', 'thumbnail_url',
-            'duration', 'is_processed', 'qualities', 'created_at'
+            'id', 'title', 'description', 'genre', 'category', 'thumbnail_url',
+            'video_file', 'duration', 'is_processed', 'qualities', 'created_at'
         ]
+    
+    def get_thumbnail_url(self, obj):
+        """Return absolute URL for thumbnail."""
+        request = self.context.get('request')
+        thumbnail_url = obj.thumbnail_url
+        if request and thumbnail_url:
+            return request.build_absolute_uri(thumbnail_url)
+        return thumbnail_url
+    
+    def get_video_file(self, obj):
+        """Return absolute URL for video file."""
+        request = self.context.get('request')
+        if request and obj.video_file:
+            return request.build_absolute_uri(obj.video_file.url)
+        return obj.video_file.url if obj.video_file else None
 
 
 class VideoUploadSerializer(serializers.ModelSerializer):

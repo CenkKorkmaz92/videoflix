@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import ContentPage
+from ..models import ContentPage
 
 
 class ContentPageSerializer(serializers.ModelSerializer):

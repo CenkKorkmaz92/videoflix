@@ -4,12 +4,12 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from django_rq import get_queue
-from .models import Video, Genre, WatchProgress
+from ..models import Video, Genre, WatchProgress
 from .serializers import (
     VideoListSerializer, VideoDetailSerializer, VideoUploadSerializer,
     WatchProgressSerializer, GenreSerializer, DashboardSerializer
 )
-from .utils import process_video_task
+from ..utils import process_video_task
 
 
 class GenreListView(generics.ListAPIView):
@@ -149,12 +149,13 @@ def delete_video(request, video_id):
 
 
 @api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([permissions.AllowAny])  # Allow unauthenticated access for development
 def hls_manifest(request, movie_id, resolution):
     """
     Serve HLS manifest file for video streaming.
+    For development: serve MP4 directly if HLS not available.
     """
-    from django.http import HttpResponse, Http404
+    from django.http import HttpResponse, Http404, HttpResponseRedirect
     import os
     from django.conf import settings
     
@@ -173,23 +174,72 @@ def hls_manifest(request, movie_id, resolution):
         'index.m3u8'
     )
     
-    if not os.path.exists(manifest_path):
-        raise Http404("Manifest not found")
+    # If HLS manifest exists, serve it
+    if os.path.exists(manifest_path):
+        try:
+            with open(manifest_path, 'r') as f:
+                content = f.read()
+            
+            response = HttpResponse(content, content_type='application/vnd.apple.mpegurl')
+            response['Cache-Control'] = 'no-cache'
+            return response
+            
+        except Exception:
+            raise Http404("Error reading manifest")
     
-    try:
-        with open(manifest_path, 'r') as f:
-            content = f.read()
+    # Development fallback: create a simple manifest pointing to MP4
+    if video.video_file:
+        # For development, create a simpler HLS manifest that should work with HLS.js
+        mp4_url = request.build_absolute_uri(video.video_file.url)
         
-        response = HttpResponse(content, content_type='application/vnd.apple.mpegurl')
+        # Get video duration and create segments
+        total_seconds = 600  # Default 10 minutes
+        if hasattr(video, 'duration') and video.duration:
+            if hasattr(video.duration, 'total_seconds'):
+                total_seconds = int(video.duration.total_seconds())
+            else:
+                # Parse duration string like "0:12:14"
+                time_parts = str(video.duration).split(':')
+                if len(time_parts) == 3:
+                    hours, minutes, seconds = map(int, time_parts)
+                    total_seconds = hours * 3600 + minutes * 60 + seconds
+        
+        # Create segments of 10 seconds each for better HLS.js compatibility
+        segment_duration = 10
+        segments = []
+        current_time = 0
+        
+        while current_time < total_seconds:
+            remaining = total_seconds - current_time
+            seg_duration = min(segment_duration, remaining)
+            segments.append(f"#EXTINF:{seg_duration:.1f},\n{mp4_url}")
+            current_time += seg_duration
+        
+        # If no segments were created, create at least one
+        if not segments:
+            segments = [f"#EXTINF:{total_seconds:.1f},\n{mp4_url}"]
+        
+        manifest_content = f"""#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:{segment_duration}
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-PLAYLIST-TYPE:VOD
+{chr(10).join(segments)}
+#EXT-X-ENDLIST
+"""
+        
+        response = HttpResponse(manifest_content, content_type='application/vnd.apple.mpegurl')
         response['Cache-Control'] = 'no-cache'
+        response['Access-Control-Allow-Origin'] = '*'
+        response['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+        response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
         return response
-        
-    except Exception:
-        raise Http404("Error reading manifest")
+    
+    raise Http404("Video file not found")
 
 
 @api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([permissions.AllowAny])  # Allow unauthenticated access for development
 def hls_segment(request, movie_id, resolution, segment):
     """
     Serve HLS video segments for streaming.

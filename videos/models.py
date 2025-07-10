@@ -62,8 +62,13 @@ class Video(models.Model):
     @property
     def thumbnail_url(self):
         """Get thumbnail URL or placeholder."""
-        if self.thumbnail:
-            return self.thumbnail.url
+        if self.thumbnail and self.thumbnail.name:
+            # Check if it's a static file path (starts with /static/)
+            if self.thumbnail.name.startswith('/static/'):
+                return self.thumbnail.name
+            # Otherwise, it's a normal media file
+            else:
+                return self.thumbnail.url
         return '/static/images/video-placeholder.png'
 
 

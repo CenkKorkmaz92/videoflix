@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from .utils import is_valid_email, is_password_strong
+from ..utils import is_valid_email, is_password_strong
 
 User = get_user_model()
 

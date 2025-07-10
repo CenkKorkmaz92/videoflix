@@ -1,5 +1,5 @@
 from rest_framework import generics, permissions
-from .models import ContentPage
+from ..models import ContentPage
 from .serializers import ContentPageSerializer
 
 

@@ -19,8 +19,8 @@ from .serializers import (
     PasswordResetSerializer,
     UserProfileSerializer
 )
-from .models import EmailVerificationToken
-from .utils import (
+from ..models import EmailVerificationToken
+from ..utils import (
     send_verification_email,
     send_password_reset_email,
     get_user_by_email
