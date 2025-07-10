@@ -17,6 +17,7 @@ This project consists of a Django backend API and an integrated frontend for vid
 ### 🎬 Video Management & Streaming
 - **HLS Video Streaming**: Adaptive bitrate streaming with multiple resolutions
 - **Video Upload**: Support for video file uploads with FFmpeg processing
+- **Automatic HLS Conversion**: Videos are automatically converted to HLS format using mentor's FFmpeg command
 - **Genre Classification**: Organize videos by categories
 - **Video Metadata**: Title, description, thumbnails, duration tracking
 
@@ -24,6 +25,12 @@ This project consists of a Django backend API and an integrated frontend for vid
 - **GET /api/video/**: List all available videos with metadata
 - **GET /api/video/{id}/{resolution}/index.m3u8**: HLS manifest for specific video/resolution
 - **GET /api/video/{id}/{resolution}/{segment}**: HLS video segments
+
+### 📹 HLS Video Processing
+- **FFmpeg Integration**: Uses mentor's FFmpeg command for HLS conversion
+- **Command**: `ffmpeg -i input.mp4 -codec: copy -start_number 0 -hls_time 10 -hls_list_size 0 -f hls output.m3u8`
+- **Automatic Processing**: Videos are automatically converted after upload
+- **Management Commands**: Manual video processing and conversion tools
 
 ### � Frontend Integration
 - **Responsive Design**: Mobile-friendly video streaming interface
@@ -144,6 +151,41 @@ videoflix/
    ```bash
    python manage.py runserver
    ```
+
+7. **Optional: Setup sample data**
+   ```bash
+   # Add sample videos with real video files
+   python manage.py add_sample_videos --download
+   
+   # Create placeholder thumbnails
+   python manage.py create_placeholders
+   
+   # Activate a user for testing
+   python manage.py activate_user --email user@example.com --activate
+   ```
+
+8. **Optional: Convert videos to HLS format**
+   ```bash
+   # Convert all videos to HLS using mentor's FFmpeg command
+   python manage.py convert_to_hls --all
+   
+   # Convert specific video
+   python manage.py convert_to_hls --video-id 1
+   
+   # Force reconversion
+   python manage.py convert_to_hls --all --force
+   ```
+
+### FFmpeg Setup (for HLS conversion)
+Install FFmpeg for video processing:
+- **Windows**: Download from https://ffmpeg.org/download.html
+- **Mac**: `brew install ffmpeg`
+- **Linux**: `sudo apt-get install ffmpeg`
+
+The HLS conversion uses mentor's FFmpeg command:
+```bash
+ffmpeg -i input.mp4 -codec: copy -start_number 0 -hls_time 10 -hls_list_size 0 -f hls output.m3u8
+```
 
 7. **Access the application**
    - Backend API: http://127.0.0.1:8000/api/

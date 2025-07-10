@@ -153,39 +153,32 @@ def delete_video(request, video_id):
 def hls_manifest(request, movie_id, resolution):
     """
     Serve HLS manifest file for video streaming.
-    For development: serve MP4 directly if HLS not available.
+    Uses mentor's FFmpeg HLS conversion approach.
     """
-    from django.http import HttpResponse, Http404, HttpResponseRedirect
-    import os
-    from django.conf import settings
+    from django.http import HttpResponse, Http404
+    from ..hls_utils import hls_processor
     
     try:
         video = Video.objects.get(id=movie_id, is_processed=True)
     except Video.DoesNotExist:
         raise Http404("Video not found")
     
-    # Build path to HLS manifest file
-    manifest_path = os.path.join(
-        settings.MEDIA_ROOT, 
-        'videos', 
-        'hls', 
-        str(video.id), 
-        resolution, 
-        'index.m3u8'
-    )
-    
-    # If HLS manifest exists, serve it
-    if os.path.exists(manifest_path):
+    # Check if HLS files exist (from mentor's FFmpeg conversion)
+    if hls_processor.hls_exists(video.id):
         try:
+            manifest_path = hls_processor.get_m3u8_path(video.id)
             with open(manifest_path, 'r') as f:
                 content = f.read()
             
             response = HttpResponse(content, content_type='application/vnd.apple.mpegurl')
             response['Cache-Control'] = 'no-cache'
+            response['Access-Control-Allow-Origin'] = '*'
+            response['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+            response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
             return response
             
         except Exception:
-            raise Http404("Error reading manifest")
+            raise Http404("Error reading HLS manifest")
     
     # Development fallback: create a simple manifest pointing to MP4
     if video.video_file:
@@ -243,25 +236,19 @@ def hls_manifest(request, movie_id, resolution):
 def hls_segment(request, movie_id, resolution, segment):
     """
     Serve HLS video segments for streaming.
+    Uses segments created by mentor's FFmpeg conversion.
     """
     from django.http import HttpResponse, Http404
     import os
-    from django.conf import settings
+    from ..hls_utils import hls_processor
     
     try:
         video = Video.objects.get(id=movie_id, is_processed=True)
     except Video.DoesNotExist:
         raise Http404("Video not found")
     
-    # Build path to segment file
-    segment_path = os.path.join(
-        settings.MEDIA_ROOT, 
-        'videos', 
-        'hls', 
-        str(video.id), 
-        resolution, 
-        segment
-    )
+    # Build path to segment file using HLS processor
+    segment_path = os.path.join(hls_processor.get_hls_directory(video.id), segment)
     
     if not os.path.exists(segment_path):
         raise Http404("Segment not found")
@@ -272,6 +259,9 @@ def hls_segment(request, movie_id, resolution, segment):
         
         response = HttpResponse(content, content_type='video/MP2T')
         response['Cache-Control'] = 'max-age=3600'  # Cache segments for 1 hour
+        response['Access-Control-Allow-Origin'] = '*'
+        response['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+        response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
         return response
         
     except Exception:

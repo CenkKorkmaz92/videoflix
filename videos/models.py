@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils.text import slugify
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 import os
 
 User = get_user_model()
@@ -128,3 +130,22 @@ class WatchProgress(models.Model):
             return 0
         
         return min(100, (current_seconds / total_seconds) * 100)
+
+
+@receiver(post_save, sender=Video)
+def process_video_for_hls(sender, instance, created, **kwargs):
+    """
+    Automatically process uploaded videos for HLS streaming.
+    Uses mentor's FFmpeg command for conversion.
+    """
+    if created and instance.video_file:
+        # Import here to avoid circular imports
+        from .hls_utils import hls_processor
+        
+        # Process video in background (optional)
+        try:
+            hls_processor.convert_to_hls(instance)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error processing video {instance.id} for HLS: {str(e)}")
