@@ -182,42 +182,17 @@ def hls_manifest(request, movie_id, resolution):
     
     # Development fallback: create a simple manifest pointing to MP4
     if video.video_file:
-        # For development, create a simpler HLS manifest that should work with HLS.js
+        # For development without FFmpeg, create a simple single-segment manifest
         mp4_url = request.build_absolute_uri(video.video_file.url)
         
-        # Get video duration and create segments
-        total_seconds = 600  # Default 10 minutes
-        if hasattr(video, 'duration') and video.duration:
-            if hasattr(video.duration, 'total_seconds'):
-                total_seconds = int(video.duration.total_seconds())
-            else:
-                # Parse duration string like "0:12:14"
-                time_parts = str(video.duration).split(':')
-                if len(time_parts) == 3:
-                    hours, minutes, seconds = map(int, time_parts)
-                    total_seconds = hours * 3600 + minutes * 60 + seconds
-        
-        # Create segments of 10 seconds each for better HLS.js compatibility
-        segment_duration = 10
-        segments = []
-        current_time = 0
-        
-        while current_time < total_seconds:
-            remaining = total_seconds - current_time
-            seg_duration = min(segment_duration, remaining)
-            segments.append(f"#EXTINF:{seg_duration:.1f},\n{mp4_url}")
-            current_time += seg_duration
-        
-        # If no segments were created, create at least one
-        if not segments:
-            segments = [f"#EXTINF:{total_seconds:.1f},\n{mp4_url}"]
-        
+        # Create a simple single-segment manifest that works better with HLS.js
         manifest_content = f"""#EXTM3U
 #EXT-X-VERSION:3
-#EXT-X-TARGETDURATION:{segment_duration}
+#EXT-X-TARGETDURATION:3600
 #EXT-X-MEDIA-SEQUENCE:0
 #EXT-X-PLAYLIST-TYPE:VOD
-{chr(10).join(segments)}
+#EXTINF:3600.0,
+{mp4_url}
 #EXT-X-ENDLIST
 """
         
