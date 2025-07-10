@@ -51,17 +51,27 @@ This project consists of a Django backend API and an integrated frontend for vid
 ```
 videoflix/
 ├── authentication/          # User authentication app
+│   ├── api/                # API layer
+│   │   ├── __init__.py
+│   │   ├── serializers.py  # Authentication serializers
+│   │   └── views.py        # Auth API endpoints
 │   ├── models.py           # Custom user model
-│   ├── serializers.py      # Authentication serializers  
-│   ├── views.py            # Auth API endpoints
 │   ├── jwt_authentication.py # Custom JWT cookie auth
 │   └── urls.py             # Authentication routes
 ├── videos/                 # Video management app
+│   ├── api/                # API layer
+│   │   ├── __init__.py
+│   │   ├── serializers.py  # Video serializers
+│   │   └── views.py        # Video API endpoints
 │   ├── models.py           # Video and Genre models
-│   ├── serializers.py      # Video serializers
-│   ├── views.py            # Video API endpoints
 │   └── urls.py             # Video routes
 ├── content/                # Static content management
+│   ├── api/                # API layer
+│   │   ├── __init__.py
+│   │   ├── serializers.py  # Content serializers
+│   │   └── views.py        # Content API endpoints
+│   ├── models.py           # Content models
+│   └── urls.py             # Content routes
 ├── core/                   # Main project configuration
 │   ├── settings.py         # Django settings
 │   └── urls.py             # Main URL configuration
