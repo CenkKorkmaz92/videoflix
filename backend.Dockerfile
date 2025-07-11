@@ -1,8 +1,8 @@
-FROM python:3.12-alpine
+FROM python:3.13-alpine
 
 LABEL maintainer="mihai@developerakademie.com"
 LABEL version="1.0"
-LABEL description="Python 3.14.0a7 Alpine 3.21"
+LABEL description="Python 3.13 Alpine Latest"
 
 WORKDIR /app
 
