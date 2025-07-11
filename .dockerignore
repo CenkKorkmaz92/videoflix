@@ -30,3 +30,21 @@ stats
 Dockerfile
 .env
 db.sqlite3
+
+# ===== FRONTEND FILES (SEPARATE REPOSITORY) =====
+# Frontend root files
+index.html
+styles.css
+script.js
+
+# Frontend directories
+assets/
+pages/
+shared/
+docs/jsdoc/
+
+# Frontend static files
+static/images/
+staticfiles/images/
+staticfiles/css/
+staticfiles/js/
