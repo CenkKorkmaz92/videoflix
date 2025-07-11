@@ -72,7 +72,7 @@ async function loadAndSetupVideos() {
         
         if (VIDEOS && VIDEOS.length > 0) {
             await getNewestVideos();
-            setHeader();
+            setStartVideo(); // Set the first video as default
             renderVideosDynamically();
         } else {
             document.getElementById('videoTitle').innerHTML = 'No videos available';
@@ -110,11 +110,16 @@ async function getNewestVideos() {
 }
 
 /**
- * Sets the title and description for the first video.
+ * Sets the title and description for the first video and loads it.
  */
 function setStartVideo() {
-    document.getElementById('videoTitle').innerHTML = VIDEOS[0].title;
-    document.getElementById('videoDescription').innerHTML = VIDEOS[0].description;
+    if (VIDEOS && VIDEOS.length > 0) {
+        document.getElementById('videoTitle').innerHTML = VIDEOS[0].title;
+        document.getElementById('videoDescription').innerHTML = VIDEOS[0].description;
+        // Set the first video as current and load it
+        currentVideo = VIDEOS[0].id;
+        loadVideo(VIDEOS[0].id, '480p');
+    }
 }
 
 /**

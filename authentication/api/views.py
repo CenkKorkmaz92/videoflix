@@ -97,10 +97,7 @@ def activate_account(request, uidb64, token):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_user(request):
-    """
-    Login user and return JWT tokens with HttpOnly cookies.
-    Only accepts JSON content type.
-    """
+    """Login user and return JWT tokens with HttpOnly cookies."""
     # Check content type
     content_type = request.content_type
     if content_type and 'application/json' not in content_type:
@@ -116,36 +113,15 @@ def login_user(request):
         refresh = RefreshToken.for_user(user)
         access_token = refresh.access_token
         
-        # Create response with required format
         response_data = {
             'detail': 'Login successful',
-            'user': {
-                'id': user.id,
-                'username': user.email  # Using email as username as per documentation
-            }
+            'user': {'id': user.id, 'username': user.email}
         }
-        
         response = Response(response_data, status=status.HTTP_200_OK)
         
-        # Set HttpOnly cookies for tokens
-        response.set_cookie(
-            'access_token',
-            str(access_token),
-            max_age=3600,  # 1 hour
-            httponly=True,
-            secure=False,  # Set to True in production with HTTPS
-            samesite='Lax'
-        )
-        
-        response.set_cookie(
-            'refresh_token',
-            str(refresh),
-            max_age=604800,  # 7 days
-            httponly=True,
-            secure=False,  # Set to True in production with HTTPS
-            samesite='Lax'
-        )
-        
+        # Set HttpOnly cookies
+        response.set_cookie('access_token', str(access_token), max_age=3600, httponly=True)
+        response.set_cookie('refresh_token', str(refresh), max_age=604800, httponly=True)
         return response
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
