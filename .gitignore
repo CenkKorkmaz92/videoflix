@@ -104,12 +104,23 @@ venv.bak/
 dmypy.json
 
 # ===== DJANGO PROJECT SPECIFIC =====
-# Media files (uploads)
-media/
+# Media files (uploads) - but keep placeholder images
+media/videos/
+media/hls/
+!media/placeholder*/
 
-# Static files
-staticfiles/
-static/
+# Static files - but keep essential images and CSS
+staticfiles/admin/
+staticfiles/rest_framework/
+!staticfiles/images/
+!staticfiles/css/
+!staticfiles/js/
+
+# Keep static images (placeholders are essential for frontend)
+!static/images/
+# Exclude only Django admin and DRF files in static/
+static/admin/
+static/rest_framework/
 
 # Video files
 video/
