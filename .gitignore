@@ -130,16 +130,16 @@ package.json  # Remove this if you want to track package.json
 /build/
 
 # ===== FRONTEND FILES (MENTOR PROVIDED) =====
-# Frontend assets in root directory
-assets/
-pages/
-shared/
-index.html
-styles.css
-script.js
+# Frontend assets in root directory - NOW INCLUDED IN REPO
+# assets/
+# pages/
+# shared/
+# index.html
+# styles.css
+# script.js
 
-# Frontend documentation
-docs/jsdoc/
+# Frontend documentation - NOW INCLUDED IN REPO
+# docs/jsdoc/
 
 # ===== IDEs & EDITORS =====
 # Visual Studio Code
