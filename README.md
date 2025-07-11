@@ -4,7 +4,7 @@ A modern video streaming platform with Django REST API backend and vanilla JavaS
 
 ## 🚀 Quick Start
 
-### Prere## 🐛 Troubleshooting
+### 📋 Prerequisi## 🐛 Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
@@ -12,14 +12,15 @@ A modern video streaming platform with Django REST API backend and vanilla JavaS
 | **No activation email found** | Check Django server is running and registration was successful |
 | **Activation link doesn't work** | Use backend API: `http://127.0.0.1:8000/api/activate/{uidb64}/{token}` |
 | **"Account already activated" message** | User is already active, can proceed to login |
-| CORS errors | Check `CORS_ALLOWED_ORIGINS` in settings |
-| Email not sending (production) | Check SMTP settings and email credentials |
-| Video won't play | Ensure FFmpeg is installed for processing |
-| Database connection failed | Make sure PostgreSQL is running |
-| Permission denied | Check file permissions for media folder |
-- Docker & Docker Compose
+| **CORS errors** | Make sure frontend is opened with Live Server, not by double-clicking |
+| **Empty video list** | Run `python manage.py add_sample_videos --download` |
+| **Email not sending** | Check console output (development mode) |
+| **Video won't play** | Ensure FFmpeg is installed for processing |
+| **Database connection failed** | Make sure PostgreSQL is running |
+| **Permission denied** | Check file permissions for media folder |cker & Docker Compose
 - Python 3.8+ (for local development)
 - Git
+- **VS Code with Live Server extension** (for frontend)
 
 ### 🐳 Option 1: Docker Setup (Recommended)
 
@@ -34,16 +35,19 @@ A modern video streaming platform with Django REST API backend and vanilla JavaS
    docker-compose up --build
    ```
 
-3. **Setup database**
+3. **Setup database and add sample content**
    ```bash
    docker-compose exec web python manage.py migrate
    docker-compose exec web python manage.py createsuperuser
+   docker-compose exec web python manage.py add_sample_videos --download
    ```
 
 4. **Access the application**
-   - Frontend: `http://localhost:5500` (open `index.html` in browser)
-   - Backend API: `http://localhost:8000/api/`
-   - Admin Panel: `http://localhost:8000/admin/`
+   - **Frontend**: Open `index.html` with Live Server in VS Code (`http://127.0.0.1:5500`)
+   - **Backend API**: `http://localhost:8000/api/`
+   - **Admin Panel**: `http://localhost:8000/admin/`
+
+> ⚠️ **Important**: The frontend MUST be opened with Live Server (VS Code extension) to avoid CORS issues!
 
 ### 💻 Option 2: Local Development
 
@@ -78,7 +82,11 @@ A modern video streaming platform with Django REST API backend and vanilla JavaS
    ```
 
 4. **Open frontend**
-   - Open `index.html` in your browser or use Live Server extension
+   - **Install Live Server extension** in VS Code
+   - **Right-click `index.html`** → "Open with Live Server"
+   - **Access at**: `http://127.0.0.1:5500`
+
+> ⚠️ **Critical**: Don't just double-click `index.html` - use Live Server to avoid CORS errors!
 
 ## 🎯 Features
 
