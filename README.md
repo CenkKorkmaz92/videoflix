@@ -111,7 +111,7 @@ When someone registers on the frontend:
 3. **Find the activation link** in the email file
 4. **Use the link** to activate the account
 
-### 📁 Step-by-Step for Mentors
+### 📁 Step-by-Step for Testers
 
 1. **After user registers**, check the `emails/` folder in the project directory
 2. **Open the newest `.log` file** (e.g., `20250711-105026-1906845821520.log`)
