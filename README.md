@@ -5,7 +5,10 @@ A modern Django REST API for video streaming platform with JWT authentication, e
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Docker & Docker Compose
+- **Docker & Docker Compose**
+  - Windows: [Docker Desktop](https://docs.docker.com/desktop/install/windows-install/)
+  - Mac: [Docker Desktop](https://docs.docker.com/desktop/install/mac-install/)
+  - Linux: [Docker Engine](https://docs.docker.com/engine/install/) + [Docker Compose](https://docs.docker.com/compose/install/)
 
 ### 🐳 Setup with Docker
 
@@ -15,23 +18,35 @@ A modern Django REST API for video streaming platform with JWT authentication, e
    cd videoflix
    ```
 
-2. **Start all services**
+2. **Create environment file**
+   ```bash
+   # Linux/Mac
+   cp .env.template .env
+   
+   # Windows (Command Prompt)
+   copy .env.template .env
+   
+   # Windows (PowerShell)
+   Copy-Item .env.template .env
+   ```
+
+3. **Start all services**
    ```bash
    docker-compose up --build
    ```
 
-3. **Setup database and create admin user**
+4. **Setup database and create admin user**
    ```bash
    docker-compose exec web python manage.py migrate
    docker-compose exec web python manage.py createsuperuser
    ```
 
-4. **Add sample videos (optional)**
+5. **Add sample videos (optional)**
    ```bash
    docker-compose exec web python manage.py add_sample_videos --download
    ```
 
-5. **Access the API**
+6. **Access the API**
    - **API**: http://localhost:8000/api/
    - **Admin Panel**: http://localhost:8000/admin/
    - **API Documentation**: http://localhost:8000/api/ (browsable API)
@@ -101,6 +116,8 @@ videoflix/
 
 | Issue | Solution |
 |-------|----------|
+| **Environment variable errors** | Make sure you copied `.env.template` to `.env` (use correct command for your OS) |
+| **"cp command not found" (Windows)** | Use `copy .env.template .env` instead of `cp` |
 | **Database connection error** | Restart containers: `docker-compose restart` |
 | **User can't login after registration** | Check `emails/` folder for activation link |
 | **Video processing fails** | Ensure FFmpeg is available in Docker container |
