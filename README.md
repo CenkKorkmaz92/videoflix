@@ -35,10 +35,13 @@ A modern Django REST API for video streaming platform with JWT authentication, e
    docker-compose up --build
    ```
 
-4. **Setup database and create admin user**
+4. **Wait for services to start**
    ```bash
-   docker-compose exec web python manage.py migrate
-   docker-compose exec web python manage.py createsuperuser
+   # The containers will automatically:
+   # - Set up the database
+   # - Run migrations  
+   # - Create admin user (admin/adminpassword)
+   # - Start the API server
    ```
 
 5. **Add sample videos (optional)**
@@ -48,7 +51,7 @@ A modern Django REST API for video streaming platform with JWT authentication, e
 
 6. **Access the API**
    - **API**: http://localhost:8000/api/
-   - **Admin Panel**: http://localhost:8000/admin/
+   - **Admin Panel**: http://localhost:8000/admin/ (admin/adminpassword)
    - **API Documentation**: http://localhost:8000/api/ (browsable API)
 
 ## 🎯 API Features
