@@ -1,5 +1,4 @@
 services:
-
   db:
     image: postgres:latest
     container_name: videoflix_database
@@ -11,6 +10,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:latest
@@ -19,6 +23,11 @@ services:
       - redis_data:/data
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
   web:
     build:
@@ -26,7 +35,6 @@ services:
       dockerfile: backend.Dockerfile
     env_file: .env
     container_name: videoflix_backend
-
     volumes:
       - .:/app
       - videoflix_media:/app/media
@@ -34,11 +42,10 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      - db
-      - redis
-
-
-
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
 volumes:
   postgres_data:
