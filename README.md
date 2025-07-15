@@ -91,6 +91,8 @@ GET  /api/video/<id>/<quality>/    # HLS streaming endpoints
 3. Find activation link in email content
 4. Visit link: `http://localhost:8000/api/activate/{token}`
 
+> **Note:** The activation link in the email is for backend testing only. It points to the backend API endpoint (not a frontend). You can activate users by visiting the link directly in your browser or using the Django shell for manual activation.
+
 ### Quick activation via Django shell:
 ```bash
 docker-compose exec web python manage.py shell
