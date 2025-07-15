@@ -40,7 +40,7 @@ A modern Django REST API for video streaming platform with JWT authentication, e
    # The containers will automatically:
    # - Set up the database
    # - Run migrations  
-   # - Create admin user (admin/adminpassword)
+   # - Create admin user (admin@example.com/adminpassword)
    # - Start the API server
    ```
 
@@ -51,7 +51,7 @@ A modern Django REST API for video streaming platform with JWT authentication, e
 
 6. **Access the API**
    - **API**: http://localhost:8000/api/
-   - **Admin Panel**: http://localhost:8000/admin/ (admin/adminpassword)
+   - **Admin Panel**: http://localhost:8000/admin/ (admin@example.com/adminpassword)
    - **API Documentation**: http://localhost:8000/api/ (browsable API)
 
 ## 🎯 API Features
