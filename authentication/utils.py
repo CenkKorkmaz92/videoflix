@@ -41,7 +41,7 @@ def send_verification_email(user, uidb64: str, token: str) -> bool:
     """
     try:
         subject = 'Verify your Videoflix account'
-        verification_url = f"{settings.FRONTEND_URL}/activate/{uidb64}/{token}"
+        verification_url = f"http://localhost:8000/api/activate/{token}"
         
         html_message = render_to_string('emails/verify_email.html', {
             'user': user,
