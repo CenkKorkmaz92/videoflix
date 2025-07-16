@@ -1,5 +1,12 @@
+
 from django.contrib import admin
-from .models import Video
+from .models import Video, Genre
+
+
+@admin.register(Genre)
+class GenreAdmin(admin.ModelAdmin):
+    list_display = ("name", "slug", "created_at")
+    search_fields = ("name",)
 
 @admin.register(Video)
 class VideoAdmin(admin.ModelAdmin):

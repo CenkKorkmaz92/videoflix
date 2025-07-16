@@ -243,6 +243,9 @@ EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'videoflix@example.com')
 
+
+# Backend URL for activation links in email verification
+BACKEND_URL = os.environ.get('BACKEND_URL', 'http://localhost:8000')
 # Frontend URL for email links
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://127.0.0.1:5500')
 
