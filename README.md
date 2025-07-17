@@ -81,17 +81,77 @@ GET  /api/video/<id>/              # Video details
 GET  /api/video/<id>/<quality>/    # HLS streaming endpoints
 ```
 
-##  Email Verification System
+##  Email Configuration & Verification System
 
-**For Testing/Evaluation**: Emails are saved as files in the `emails/` folder.
+### 📧 Setting Up Real Email Delivery
+
+To enable real email sending (for account activation), configure SMTP settings in your `.env` file:
+
+#### Option 1: Gmail
+1. **Create a Gmail App Password:**
+   - Enable 2-Step Verification on your Gmail account
+   - Go to Google Account > Security > App Passwords
+   - Generate a new App Password for "Mail"
+
+2. **Update `.env` file:**
+   ```bash
+   EMAIL_HOST=smtp.gmail.com
+   EMAIL_PORT=587
+   EMAIL_HOST_USER=your_email@gmail.com
+   EMAIL_HOST_PASSWORD=your_16_character_app_password
+   EMAIL_USE_TLS=True
+   DEFAULT_FROM_EMAIL=your_email@gmail.com
+   ```
+
+#### Option 2: Outlook/Hotmail
+```bash
+EMAIL_HOST=smtp-mail.outlook.com
+EMAIL_PORT=587
+EMAIL_HOST_USER=your_email@outlook.com
+EMAIL_HOST_PASSWORD=your_password
+EMAIL_USE_TLS=True
+DEFAULT_FROM_EMAIL=your_email@outlook.com
+```
+
+#### Option 3: Yahoo Mail
+```bash
+EMAIL_HOST=smtp.mail.yahoo.com
+EMAIL_PORT=587
+EMAIL_HOST_USER=your_email@yahoo.com
+EMAIL_HOST_PASSWORD=your_app_password
+EMAIL_USE_TLS=True
+DEFAULT_FROM_EMAIL=your_email@yahoo.com
+```
+
+#### Option 4: Other Providers
+For other email providers, check their SMTP settings documentation:
+- **HOST**: Usually `smtp.yourprovider.com`
+- **PORT**: Typically `587` (TLS) or `465` (SSL)
+- **TLS/SSL**: Enable appropriate encryption
+
+3. **Restart Docker containers:**
+   ```bash
+   docker-compose down
+   docker-compose up --build
+   ```
+
+### 🔄 Alternative: File-Based Email (Development)
+
+For development/testing without real emails, you can use file-based email backend:
+
+1. **Change in `settings.py`:**
+   ```python
+   EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
+   EMAIL_FILE_PATH = os.path.join(BASE_DIR, 'emails')
+   ```
+
+2. **Check emails:** Activation emails will be saved as `.log` files in the `emails/` folder.
 
 ### How to activate user accounts:
 1. User registers via API
-2. Check `emails/` folder for activation email (.log file)
-3. Find activation link in email content
-4. Visit link: `http://localhost:8000/api/activate/{token}`
-
-> **Note:** The activation link in the email is for backend testing only. It points to the backend API endpoint (not a frontend). You can activate users by visiting the link directly in your browser or using the Django shell for manual activation.
+2. **With SMTP:** Check your email inbox for activation email
+3. **With file backend:** Check `emails/` folder for activation email (.log file)
+4. Click activation link or visit: `http://localhost:8000/api/activate/{uidb64}/{token}`
 
 ### Quick activation via Django shell:
 ```bash

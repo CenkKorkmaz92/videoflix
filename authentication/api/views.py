@@ -66,7 +66,11 @@ def register_user(request):
 def activate_account(request, uidb64, token):
     """
     Activate user account using uidb64 and token from email.
+    Redirects to frontend login page after activation.
     """
+    from django.shortcuts import redirect
+    from django.conf import settings
+    
     try:
         uid = force_str(urlsafe_base64_decode(uidb64))
         user = User.objects.get(pk=uid)
@@ -76,22 +80,22 @@ def activate_account(request, uidb64, token):
                 user.is_active = True
                 user.is_email_verified = True
                 user.save()
-                return Response({
-                    'detail': 'Account activated successfully'
-                }, status=status.HTTP_200_OK)
+                # Redirect to frontend login with success message
+                frontend_url = getattr(settings, 'FRONTEND_URL', 'http://127.0.0.1:5500')
+                return redirect(f"{frontend_url}/index.html?activation=success")
             else:
-                return Response({
-                    'detail': 'Account is already activated.'
-                }, status=status.HTTP_200_OK)
+                # Account already activated
+                frontend_url = getattr(settings, 'FRONTEND_URL', 'http://127.0.0.1:5500')
+                return redirect(f"{frontend_url}/index.html?activation=already_active")
         else:
-            return Response({
-                'error': 'Invalid activation link.'
-            }, status=status.HTTP_400_BAD_REQUEST)
+            # Invalid token
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'http://127.0.0.1:5500')
+            return redirect(f"{frontend_url}/index.html?activation=invalid")
             
     except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-        return Response({
-            'error': 'Invalid activation link.'
-        }, status=status.HTTP_400_BAD_REQUEST)
+        # Invalid link
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'http://127.0.0.1:5500')
+        return redirect(f"{frontend_url}/index.html?activation=error")
 
 
 @api_view(['POST'])

@@ -39,6 +39,7 @@ def send_verification_email(user, uidb64: str, token: str) -> bool:
     Returns:
         True if email sent successfully, False otherwise
     """
+    import logging
     try:
         subject = 'Verify your Videoflix account'
         # Use configurable BACKEND_URL for mentor testing
@@ -51,15 +52,17 @@ def send_verification_email(user, uidb64: str, token: str) -> bool:
         })
         plain_message = strip_tags(html_message)
 
-        send_mail(
+        response = send_mail(
             subject=subject,
             message=plain_message,
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
             html_message=html_message,
         )
+        logging.info(f"send_mail response: {response}")
         return True
-    except Exception:
+    except Exception as e:
+        logging.error(f"Error sending verification email: {e}")
         return False
 
 
