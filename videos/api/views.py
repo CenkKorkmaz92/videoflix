@@ -241,3 +241,111 @@ def hls_segment(request, movie_id, resolution, segment):
         
     except Exception:
         raise Http404("Error reading segment")
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAdminUser])
+def processing_status(request):
+    """
+    Get processing status of all videos for debugging.
+    Only accessible by admin users.
+    """
+    from django.utils import timezone
+    import os
+    
+    # Get all videos with processing status
+    videos = Video.objects.all().order_by('-created_at')
+    
+    status_data = []
+    for video in videos:
+        video_data = {
+            'id': video.id,
+            'title': video.title,
+            'is_processed': video.is_processed,
+            'created_at': video.created_at,
+            'has_video_file': bool(video.video_file),
+            'file_exists': False,
+            'file_size': 0,
+            'processing_age_hours': (timezone.now() - video.created_at).total_seconds() / 3600
+        }
+        
+        if video.video_file:
+            try:
+                if os.path.exists(video.video_file.path):
+                    video_data['file_exists'] = True
+                    video_data['file_size'] = os.path.getsize(video.video_file.path)
+            except Exception:
+                pass
+        
+        status_data.append(video_data)
+    
+    # Summary statistics
+    total_videos = len(status_data)
+    processed_videos = len([v for v in status_data if v['is_processed']])
+    unprocessed_videos = total_videos - processed_videos
+    
+    return Response({
+        'summary': {
+            'total_videos': total_videos,
+            'processed_videos': processed_videos,
+            'unprocessed_videos': unprocessed_videos
+        },
+        'videos': status_data
+    })
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAdminUser])
+def force_process_video(request, video_id):
+    """
+    Force processing of a specific video.
+    Only accessible by admin users.
+    """
+    from django_rq import get_queue
+    from ..utils import process_video_task
+    
+    try:
+        video = Video.objects.get(id=video_id)
+        
+        if not video.video_file:
+            return Response({
+                'error': 'Video has no file to process'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Queue the video for processing
+        queue = get_queue('default')
+        job = queue.enqueue(process_video_task, video.id)
+        
+        return Response({
+            'detail': f'Video {video_id} queued for processing',
+            'job_id': job.id,
+            'video_title': video.title
+        })
+        
+    except Video.DoesNotExist:
+        return Response({
+            'error': 'Video not found'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAdminUser])
+def mark_video_processed(request, video_id):
+    """
+    Manually mark a video as processed without actual processing.
+    Only accessible by admin users.
+    """
+    try:
+        video = Video.objects.get(id=video_id)
+        video.is_processed = True
+        video.save()
+        
+        return Response({
+            'detail': f'Video {video_id} marked as processed',
+            'video_title': video.title
+        })
+        
+    except Video.DoesNotExist:
+        return Response({
+            'error': 'Video not found'
+        }, status=status.HTTP_404_NOT_FOUND)

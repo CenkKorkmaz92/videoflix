@@ -23,4 +23,9 @@ urlpatterns = [
     
     # Dashboard
     path('dashboard/', views.dashboard_data, name='dashboard'),
+    
+    # Admin/Debug endpoints
+    path('admin/processing-status/', views.processing_status, name='processing-status'),
+    path('admin/force-process/<int:video_id>/', views.force_process_video, name='force-process'),
+    path('admin/mark-processed/<int:video_id>/', views.mark_video_processed, name='mark-processed'),
 ]
