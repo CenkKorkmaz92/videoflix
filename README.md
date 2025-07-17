@@ -60,8 +60,10 @@ A modern Django REST API for video streaming platform with JWT authentication, e
 - ✅ **Video Management** - Upload, process, stream videos
 - ✅ **HLS Streaming** - Adaptive quality streaming
 - ✅ **Email System** - Account activation & password reset
-- ✅ **Admin Interface** - Video and user management
-- ✅ **Background Tasks** - Video processing with Redis/RQ
+- ✅ **Admin Interface** - Video and user management with bulk actions
+- ✅ **Background Tasks** - Automatic video processing with Redis/RQ
+- ✅ **Auto-Processing** - Videos uploaded via admin automatically appear in frontend
+- ✅ **Debug Tools** - Management commands and API endpoints for troubleshooting
 
 ## 📡 API Endpoints
 
@@ -79,6 +81,13 @@ POST /api/password_reset/     # Request password reset
 GET  /api/video/                    # List all videos
 GET  /api/video/<id>/              # Video details
 GET  /api/video/<id>/<quality>/    # HLS streaming endpoints
+```
+
+### Admin/Debug (Staff only)
+```
+GET  /api/videos/admin/processing-status/     # Check video processing status
+POST /api/videos/admin/force-process/<id>/    # Force process specific video
+POST /api/videos/admin/mark-processed/<id>/   # Mark video as processed manually
 ```
 
 ##  Email Configuration & Verification System
@@ -103,15 +112,23 @@ To enable real email sending (for account activation), configure SMTP settings i
    DEFAULT_FROM_EMAIL=your_email@gmail.com
    ```
 
-#### Option 2: Outlook/Hotmail
-```bash
-EMAIL_HOST=smtp-mail.outlook.com
-EMAIL_PORT=587
-EMAIL_HOST_USER=your_email@outlook.com
-EMAIL_HOST_PASSWORD=your_password
-EMAIL_USE_TLS=True
-DEFAULT_FROM_EMAIL=your_email@outlook.com
-```
+#### Option 2: Microsoft 365 (Outlook/Hotmail)
+1. **Create an App Password:**
+   - Go to Microsoft Account Security settings
+   - Enable 2-Step Verification
+   - Generate App Password for "Mail"
+
+2. **Update `.env` file:**
+   ```bash
+   EMAIL_HOST=smtp-mail.outlook.com
+   EMAIL_PORT=587
+   EMAIL_HOST_USER=your_email@outlook.com
+   EMAIL_HOST_PASSWORD=your_app_password
+   EMAIL_USE_TLS=True
+   DEFAULT_FROM_EMAIL=your_email@outlook.com
+   ```
+
+   **Note:** For @hotmail.com, @live.com, or @msn.com addresses, use the same settings.
 
 #### Option 3: Yahoo Mail
 ```bash
@@ -164,6 +181,33 @@ docker-compose exec web python manage.py shell
 >>> user.save()
 ```
 
+## 🎬 Video Management
+
+### Admin Panel Video Upload
+1. **Go to Admin Panel:** http://localhost:8000/admin/
+2. **Login:** admin@example.com / adminpassword
+3. **Navigate:** Videos → Add Video
+4. **Upload:** Fill form and upload video file
+5. **Automatic Processing:** Video will be automatically processed and appear in frontend
+
+### Video Processing Management
+```bash
+# Check processing status of all videos
+docker-compose exec web python manage.py process_pending_videos
+
+# Mark all unprocessed videos as processed (skip processing)
+docker-compose exec web python manage.py process_pending_videos --mark-all-processed
+
+# Queue videos for background processing
+docker-compose exec web python manage.py process_pending_videos --queue-only
+```
+
+### Admin Interface Features
+- ✅ **Bulk Actions** - Mark multiple videos as processed
+- ✅ **Processing Status** - Visual indicators for video processing state
+- ✅ **Manual Override** - Force processing or mark as processed
+- ✅ **Filter & Search** - Find videos by status, genre, or title
+
 ## 🛠️ Project Structure
 
 ```
@@ -188,6 +232,9 @@ videoflix/
 | **Video processing fails** | Ensure FFmpeg is available in Docker container |
 | **Redis connection error** | Restart containers: `docker-compose restart` |
 | **Permission denied errors** | Check Docker file permissions |
+| **Videos uploaded via admin don't appear** | Check processing status with `python manage.py process_pending_videos` |
+| **Background processing stuck** | Use admin bulk actions to mark videos as processed |
+| **Email activation not working** | Check SMTP configuration or use Django shell to manually activate |
 
 ## 🔒 Security Features
 
