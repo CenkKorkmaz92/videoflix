@@ -46,6 +46,13 @@ class VideoListView(generics.ListAPIView):
             )
         
         return queryset.order_by('-created_at')
+    
+    def list(self, request, *args, **kwargs):
+        """Return videos as direct array for frontend compatibility."""
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        # Return direct array instead of {"results": [...]} or {"videos": [...]}
+        return Response(serializer.data)
 
 
 class VideoDetailView(generics.RetrieveAPIView):
