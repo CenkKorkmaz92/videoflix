@@ -47,12 +47,21 @@ GET  /api/video/<id>/         # Video details
 GET  /api/video/<id>/stream/  # HLS streaming
 ```
 
-## 🎬 Video Upload
+## 🎬 Video Upload & Processing
 
 1. Go to **Admin Panel**: http://localhost:8000/admin/
 2. **Videos** → **Add Video** → Upload file
 3. **Automatic processing** starts in background
 4. Video appears in frontend when `is_processed=True`
+
+⏳ **Processing Time Notice:**
+- **Small videos** (~100MB): 2-5 minutes
+- **Large videos** (~1GB+): 10-30 minutes  
+- **Processing creates**: 480p, 720p, 1080p HLS segments
+- **Status**: Check `is_processed` field in admin panel
+- **Debug**: View processing logs with `docker-compose logs worker`
+
+💡 **Tip**: Videos are only visible in the frontend after processing completes!
 
 ## 🔧 Troubleshooting
 

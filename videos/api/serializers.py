@@ -17,9 +17,33 @@ class VideoQualitySerializer(serializers.ModelSerializer):
     """
     Serializer for video quality versions.
     """
+    video_url = serializers.SerializerMethodField()
+    
     class Meta:
         model = VideoQuality
-        fields = ['quality', 'file_size', 'is_ready']
+        fields = ['quality', 'file_size', 'is_ready', 'video_url']
+    
+    def get_video_url(self, obj):
+        """Get the full URL for the video quality file."""
+        request = self.context.get('request')
+        if request and obj.file_path:
+            # Build URL from file_path
+            from django.conf import settings
+            import os
+            
+            # Convert to string if it's a Path object
+            file_path = str(obj.file_path)
+            
+            # If file_path is already a relative path from MEDIA_ROOT
+            if file_path.startswith(str(settings.MEDIA_ROOT)):
+                # Get relative path from MEDIA_ROOT
+                relative_path = os.path.relpath(file_path, settings.MEDIA_ROOT).replace('\\', '/')
+            else:
+                # Assume it's already a relative path
+                relative_path = file_path.replace('\\', '/').lstrip('/')
+            
+            return request.build_absolute_uri(settings.MEDIA_URL + relative_path)
+        return None
 
 
 class VideoListSerializer(serializers.ModelSerializer):
@@ -28,6 +52,7 @@ class VideoListSerializer(serializers.ModelSerializer):
     """
     genre = GenreSerializer(read_only=True)
     category = serializers.CharField(source='genre.name', read_only=True)
+    qualities = VideoQualitySerializer(many=True, read_only=True)
     thumbnail_url = serializers.SerializerMethodField()
     video_file = serializers.SerializerMethodField()
     
@@ -35,7 +60,7 @@ class VideoListSerializer(serializers.ModelSerializer):
         model = Video
         fields = [
             'id', 'title', 'description', 'genre', 'category',
-            'thumbnail_url', 'video_file', 'duration', 'created_at'
+            'thumbnail_url', 'video_file', 'qualities', 'duration', 'created_at'
         ]
     
     def get_thumbnail_url(self, obj):
@@ -56,11 +81,32 @@ class VideoListSerializer(serializers.ModelSerializer):
         return placeholder_url
     
     def get_video_file(self, obj):
-        """Return absolute URL for video file."""
+        """Return absolute URL for video file - preferably a mid-quality version."""
         request = self.context.get('request')
-        if request and obj.video_file:
+        if not request:
+            return obj.video_file.url if obj.video_file else None
+        
+        # Try to use 720p quality first (good balance for video list)
+        try:
+            quality_720p = obj.qualities.filter(quality='720p', is_ready=True).first()
+            if quality_720p and quality_720p.file_path:
+                from django.conf import settings
+                import os
+                
+                file_path = str(quality_720p.file_path)
+                if file_path.startswith(str(settings.MEDIA_ROOT)):
+                    relative_path = os.path.relpath(file_path, settings.MEDIA_ROOT).replace('\\', '/')
+                else:
+                    relative_path = file_path.replace('\\', '/').lstrip('/')
+                
+                return request.build_absolute_uri(settings.MEDIA_URL + relative_path)
+        except:
+            pass
+        
+        # Fallback to original video file
+        if obj.video_file:
             return request.build_absolute_uri(obj.video_file.url)
-        return obj.video_file.url if obj.video_file else None
+        return None
 
 
 class VideoDetailSerializer(serializers.ModelSerializer):
@@ -98,7 +144,7 @@ class VideoDetailSerializer(serializers.ModelSerializer):
         return placeholder_url
     
     def get_video_file(self, obj):
-        """Return absolute URL for video file."""
+        """Return absolute URL for original video file - quality switching handled via qualities array."""
         request = self.context.get('request')
         if request and obj.video_file:
             return request.build_absolute_uri(obj.video_file.url)

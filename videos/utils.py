@@ -130,11 +130,11 @@ def convert_video_quality(input_path: str, output_path: str, quality: str) -> bo
         True if successful, False otherwise
     """
     try:
-        # Quality settings
+        # Quality settings with VERY noticeable differences
         quality_settings = {
-            '480p': {'width': 854, 'height': 480, 'bitrate': '1000k'},
-            '720p': {'width': 1280, 'height': 720, 'bitrate': '2500k'},
-            '1080p': {'width': 1920, 'height': 1080, 'bitrate': '5000k'},
+            '480p': {'width': 640, 'height': 360, 'bitrate': '400k', 'crf': '32'},
+            '720p': {'width': 1280, 'height': 720, 'bitrate': '2000k', 'crf': '23'},
+            '1080p': {'width': 1920, 'height': 1080, 'bitrate': '6000k', 'crf': '18'},
         }
         
         if quality not in quality_settings:
@@ -150,9 +150,10 @@ def convert_video_quality(input_path: str, output_path: str, quality: str) -> bo
             'ffmpeg', '-i', input_path,
             '-c:v', 'libx264',                                    # Video codec
             '-preset', 'medium',                                  # Encoding speed/quality balance
-            '-crf', '23',                                         # Constant rate factor (quality)
+            '-crf', settings_dict['crf'],                         # Variable quality (lower = better)
             '-vf', f"scale={settings_dict['width']}:{settings_dict['height']}", # Scale video
-            '-b:v', settings_dict['bitrate'],                     # Video bitrate
+            '-maxrate', settings_dict['bitrate'],                 # Maximum bitrate
+            '-bufsize', f"{int(settings_dict['bitrate'][:-1]) * 2}k", # Buffer size
             '-c:a', 'aac',                                        # Audio codec
             '-b:a', '128k',                                       # Audio bitrate
             '-movflags', '+faststart',                            # Web optimization
@@ -177,6 +178,91 @@ def convert_video_quality(input_path: str, output_path: str, quality: str) -> bo
         return False
 
 
+def convert_to_hls_segments(input_path: str, output_dir: str, quality: str) -> bool:
+    """
+    Convert video to HLS format with proper segmentation for each quality.
+    
+    Args:
+        input_path: Source video path
+        output_dir: Output directory for HLS files
+        quality: Target quality (480p, 720p, 1080p)
+        
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        quality_settings = {
+            '480p': {'width': 640, 'height': 360, 'bitrate': '400k', 'crf': '32'},
+            '720p': {'width': 1280, 'height': 720, 'bitrate': '2000k', 'crf': '23'},
+            '1080p': {'width': 1920, 'height': 1080, 'bitrate': '6000k', 'crf': '18'},
+        }
+        
+        if quality not in quality_settings:
+            return False
+        
+        settings_dict = quality_settings[quality]
+        
+        # Ensure output directory exists
+        os.makedirs(output_dir, exist_ok=True)
+        
+        playlist_path = os.path.join(output_dir, 'index.m3u8')
+        segment_pattern = os.path.join(output_dir, 'segment_%03d.ts')
+        
+        cmd = [
+            'ffmpeg', '-i', input_path,
+            '-c:v', 'libx264',
+            '-preset', 'medium',
+            '-crf', settings_dict['crf'],
+            '-vf', f"scale={settings_dict['width']}:{settings_dict['height']}",
+            '-maxrate', settings_dict['bitrate'],
+            '-bufsize', f"{int(settings_dict['bitrate'][:-1]) * 2}k",
+            '-c:a', 'aac',
+            '-b:a', '128k',
+            '-hls_time', '10',                    # 10 second segments
+            '-hls_list_size', '0',                # Keep all segments
+            '-hls_segment_filename', segment_pattern,  # Segment naming pattern
+            '-y', playlist_path
+        ]
+        
+        logger.info(f"Converting to HLS segments for {quality}: {output_dir}")
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
+        
+        if result.returncode == 0 and os.path.exists(playlist_path):
+            logger.info(f"HLS segmentation successful: {quality}")
+            return True
+        else:
+            logger.error(f"HLS segmentation failed: {result.stderr}")
+            return False
+            
+    except Exception as e:
+        logger.error(f"Error converting to HLS segments: {e}")
+        return False
+
+
+def get_directory_size(directory: str) -> int:
+    """
+    Get total size of all files in a directory.
+    
+    Args:
+        directory: Directory path
+        
+    Returns:
+        Total size in bytes
+    """
+    try:
+        total_size = 0
+        for dirpath, dirnames, filenames in os.walk(directory):
+            for filename in filenames:
+                filepath = os.path.join(dirpath, filename)
+                try:
+                    total_size += os.path.getsize(filepath)
+                except OSError:
+                    pass
+        return total_size
+    except Exception:
+        return 0
+
+
 def convert_to_hls(input_path: str, output_dir: str, quality: str) -> bool:
     """
     Convert video to HLS (HTTP Live Streaming) format.
@@ -191,9 +277,9 @@ def convert_to_hls(input_path: str, output_dir: str, quality: str) -> bool:
     """
     try:
         quality_settings = {
-            '480p': {'width': 854, 'height': 480, 'bitrate': '1000k'},
-            '720p': {'width': 1280, 'height': 720, 'bitrate': '2500k'},
-            '1080p': {'width': 1920, 'height': 1080, 'bitrate': '5000k'},
+            '480p': {'width': 640, 'height': 360, 'bitrate': '400k', 'crf': '32'},
+            '720p': {'width': 1280, 'height': 720, 'bitrate': '2000k', 'crf': '23'},
+            '1080p': {'width': 1920, 'height': 1080, 'bitrate': '6000k', 'crf': '18'},
         }
         
         if quality not in quality_settings:
@@ -326,26 +412,30 @@ def process_video_task(video_id):
                         save=False
                     )
         
-        # Convert to different qualities
+        # Convert to different qualities with HLS segmentation
         qualities = ['480p', '720p', '1080p']
         
         for quality in qualities:
             # Check if quality already exists
-            if not video.video_qualities.filter(quality=quality).exists():
-                output_filename = f"{video.id}_{quality}.mp4"
-                output_path = os.path.join(settings.MEDIA_ROOT, 'videos', 'converted', output_filename)
+            if not video.qualities.filter(quality=quality).exists():
+                # Create HLS directory for this quality
+                hls_output_dir = os.path.join(settings.MEDIA_ROOT, 'videos', str(video.id), 'hls', quality)
                 
-                if convert_video_quality(video_path, output_path, quality):
-                    # Create VideoQuality record
+                if convert_to_hls_segments(video_path, hls_output_dir, quality):
+                    # Get the m3u8 file path
+                    m3u8_path = os.path.join(hls_output_dir, 'index.m3u8')
+                    
+                    # Create VideoQuality record pointing to HLS directory
                     VideoQuality.objects.create(
                         video=video,
                         quality=quality,
-                        file_size=get_file_size(output_path),
-                        video_file=f'videos/converted/{output_filename}'
+                        file_size=get_directory_size(hls_output_dir),
+                        file_path=hls_output_dir,  # Point to HLS directory
+                        is_ready=True
                     )
-                    logger.info(f"Created {quality} quality for video {video_id}")
+                    logger.info(f"Created HLS {quality} quality for video {video_id}")
                 else:
-                    logger.error(f"Failed to convert {quality} for video {video_id}")
+                    logger.error(f"Failed to convert HLS {quality} for video {video_id}")
         
         # Update processing status
         video.is_processed = True

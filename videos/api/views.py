@@ -170,7 +170,46 @@ def hls_manifest(request, movie_id, resolution):
     except Video.DoesNotExist:
         raise Http404("Video not found")
     
-    # Check if HLS files exist (from mentor's FFmpeg conversion)
+    # Quality-specific HLS: serve proper HLS segments for each quality
+    try:
+        from ..models import VideoQuality
+        from django.conf import settings
+        import os
+        
+        quality_obj = VideoQuality.objects.get(video=video, quality=resolution)
+        if quality_obj.file_path and quality_obj.is_ready:
+            # Check if it's an HLS directory (new format)
+            hls_manifest_path = os.path.join(quality_obj.file_path, 'index.m3u8')
+            
+            if os.path.exists(hls_manifest_path):
+                # Serve the quality-specific HLS manifest
+                with open(hls_manifest_path, 'r') as f:
+                    content = f.read()
+                
+                # Update segment URLs to include the resolution path
+                base_url = request.build_absolute_uri(f'/api/video/{movie_id}/{resolution}/segment/')
+                updated_content = []
+                
+                for line in content.split('\n'):
+                    if line.strip().endswith('.ts'):
+                        # Replace segment filename with full URL
+                        segment_name = line.strip()
+                        updated_content.append(base_url + segment_name)
+                    else:
+                        updated_content.append(line)
+                
+                final_content = '\n'.join(updated_content)
+                
+                response = HttpResponse(final_content, content_type='application/vnd.apple.mpegurl')
+                response['Cache-Control'] = 'no-cache'
+                response['Access-Control-Allow-Origin'] = '*'
+                response['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+                response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+                return response
+    except VideoQuality.DoesNotExist:
+        pass
+    
+    # Fallback to mentor's HLS if no quality-specific HLS available
     if hls_processor.hls_exists(video.id):
         try:
             manifest_path = hls_processor.get_m3u8_path(video.id)
@@ -185,7 +224,8 @@ def hls_manifest(request, movie_id, resolution):
             return response
             
         except Exception:
-            raise Http404("Error reading HLS manifest")
+            # Fall through to MP4 fallback
+            pass
     
     # Development fallback: create resolution-specific manifest
     if video.video_file:
@@ -196,8 +236,18 @@ def hls_manifest(request, movie_id, resolution):
         try:
             from ..models import VideoQuality
             quality_obj = VideoQuality.objects.get(video=video, quality=resolution)
-            if quality_obj.video_file:
-                video_url = request.build_absolute_uri(quality_obj.video_file.url)
+            if quality_obj.file_path and quality_obj.is_ready:
+                # Build URL from file_path using the same logic as VideoQualitySerializer
+                from django.conf import settings
+                import os
+                
+                file_path = str(quality_obj.file_path)
+                if file_path.startswith(str(settings.MEDIA_ROOT)):
+                    relative_path = os.path.relpath(file_path, settings.MEDIA_ROOT).replace('\\', '/')
+                else:
+                    relative_path = file_path.replace('\\', '/').lstrip('/')
+                
+                video_url = request.build_absolute_uri(settings.MEDIA_URL + relative_path)
         except VideoQuality.DoesNotExist:
             pass
         
@@ -205,13 +255,13 @@ def hls_manifest(request, movie_id, resolution):
         if not video_url:
             video_url = request.build_absolute_uri(video.video_file.url)
         
-        # Create a simple single-segment manifest
+        # Create a simple single-segment manifest with quality-specific MP4
         manifest_content = f"""#EXTM3U
 #EXT-X-VERSION:3
-#EXT-X-TARGETDURATION:3600
+#EXT-X-TARGETDURATION:10
 #EXT-X-MEDIA-SEQUENCE:0
 #EXT-X-PLAYLIST-TYPE:VOD
-#EXTINF:3600.0,
+#EXTINF:10.0,
 {video_url}
 #EXT-X-ENDLIST
 """
@@ -231,7 +281,7 @@ def hls_manifest(request, movie_id, resolution):
 def hls_segment(request, movie_id, resolution, segment):
     """
     Serve HLS video segments for streaming.
-    Uses segments created by mentor's FFmpeg conversion.
+    Uses quality-specific segments created by our FFmpeg conversion.
     """
     from django.http import HttpResponse, Http404
     import os
@@ -242,25 +292,44 @@ def hls_segment(request, movie_id, resolution, segment):
     except Video.DoesNotExist:
         raise Http404("Video not found")
     
-    # Build path to segment file using HLS processor
-    segment_path = os.path.join(hls_processor.get_hls_directory(video.id), segment)
-    
-    if not os.path.exists(segment_path):
-        raise Http404("Segment not found")
-    
+    # First try mentor's HLS segments
     try:
-        with open(segment_path, 'rb') as f:
-            content = f.read()
-        
-        response = HttpResponse(content, content_type='video/MP2T')
-        response['Cache-Control'] = 'max-age=3600'  # Cache segments for 1 hour
-        response['Access-Control-Allow-Origin'] = '*'
-        response['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
-        response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
-        return response
-        
+        segment_path = os.path.join(hls_processor.get_hls_directory(video.id), segment)
+        if os.path.exists(segment_path):
+            with open(segment_path, 'rb') as f:
+                content = f.read()
+            
+            response = HttpResponse(content, content_type='video/MP2T')
+            response['Cache-Control'] = 'max-age=3600'  # Cache segments for 1 hour
+            response['Access-Control-Allow-Origin'] = '*'
+            response['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+            response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+            return response
     except Exception:
-        raise Http404("Error reading segment")
+        pass
+    
+    # Try quality-specific HLS segments
+    try:
+        from ..models import VideoQuality
+        quality_obj = VideoQuality.objects.get(video=video, quality=resolution)
+        
+        if quality_obj.file_path and quality_obj.is_ready:
+            segment_path = os.path.join(quality_obj.file_path, segment)
+            
+            if os.path.exists(segment_path):
+                with open(segment_path, 'rb') as f:
+                    content = f.read()
+                
+                response = HttpResponse(content, content_type='video/MP2T')
+                response['Cache-Control'] = 'max-age=3600'  # Cache segments for 1 hour
+                response['Access-Control-Allow-Origin'] = '*'
+                response['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+                response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+                return response
+    except VideoQuality.DoesNotExist:
+        pass
+    
+    raise Http404("Segment not found")
 
 
 @api_view(['GET'])
