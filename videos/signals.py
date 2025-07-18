@@ -1,9 +1,8 @@
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
-from django_rq import get_queue
+from django.core.exceptions import SuspiciousFileOperation
 import os
 from .models import Video
-from .utils import process_video_task
 
 
 @receiver(post_save, sender=Video)
@@ -12,10 +11,33 @@ def video_post_save(sender, instance, created, **kwargs):
     Signal handler for when a video is saved.
     Automatically starts video processing for new uploads.
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"🎬 SIGNAL TRIGGERED: Video {instance.id} saved, created={created}")
+    print(f"🎬 SIGNAL TRIGGERED: Video {instance.id} saved, created={created}")
+    
     if created and instance.video_file:
-        # Queue video processing task when a new video is created
-        queue = get_queue('default')
-        queue.enqueue(process_video_task, instance.id)
+        logger.info(f"🚀 Starting background processing for video {instance.id}")
+        print(f"🚀 Starting background processing for video {instance.id}")
+        # Process video in background using RQ queue
+        try:
+            from django_rq import get_queue
+            from .tasks import create_video_qualities
+            
+            queue = get_queue('default')
+            job = queue.enqueue(create_video_qualities, instance.id)
+            logger.info(f"✅ Job queued: {job.id}")
+            print(f"✅ Job queued: {job.id}")
+        except Exception as e:
+            logger.error(f"❌ Error queuing job: {e}")
+            print(f"❌ Error queuing job: {e}")
+            # Fallback to direct processing if RQ fails
+            from .tasks import create_video_qualities
+            create_video_qualities(instance.id)
+    else:
+        logger.info(f"⏭️ Skipping processing: created={created}, has_file={bool(instance.video_file)}")
+        print(f"⏭️ Skipping processing: created={created}, has_file={bool(instance.video_file)}")
 
 
 @receiver(post_delete, sender=Video)
@@ -32,10 +54,13 @@ def video_post_delete(sender, instance, **kwargs):
             pass
     
     # Delete thumbnail file
-    if instance.thumbnail and os.path.isfile(instance.thumbnail.path):
+    if instance.thumbnail:
         try:
-            os.remove(instance.thumbnail.path)
-        except OSError:
+            thumbnail_path = instance.thumbnail.path
+            if os.path.isfile(thumbnail_path):
+                os.remove(thumbnail_path)
+        except (OSError, ValueError, SuspiciousFileOperation):
+            # Handle cases where file doesn't exist or path is outside media root
             pass
     
     # Delete processed video files

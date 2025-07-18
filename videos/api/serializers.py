@@ -41,10 +41,19 @@ class VideoListSerializer(serializers.ModelSerializer):
     def get_thumbnail_url(self, obj):
         """Return absolute URL for thumbnail."""
         request = self.context.get('request')
-        thumbnail_url = obj.thumbnail_url
-        if request and thumbnail_url:
-            return request.build_absolute_uri(thumbnail_url)
-        return thumbnail_url
+        
+        # Use the thumbnail file directly if available
+        if obj.thumbnail and obj.thumbnail.name:
+            if request:
+                return request.build_absolute_uri(obj.thumbnail.url)
+            else:
+                return obj.thumbnail.url
+        
+        # Fallback to placeholder
+        placeholder_url = '/static/images/video-placeholder.png'
+        if request:
+            return request.build_absolute_uri(placeholder_url)
+        return placeholder_url
     
     def get_video_file(self, obj):
         """Return absolute URL for video file."""
@@ -74,10 +83,19 @@ class VideoDetailSerializer(serializers.ModelSerializer):
     def get_thumbnail_url(self, obj):
         """Return absolute URL for thumbnail."""
         request = self.context.get('request')
-        thumbnail_url = obj.thumbnail_url
-        if request and thumbnail_url:
-            return request.build_absolute_uri(thumbnail_url)
-        return thumbnail_url
+        
+        # Use the thumbnail file directly if available
+        if obj.thumbnail and obj.thumbnail.name:
+            if request:
+                return request.build_absolute_uri(obj.thumbnail.url)
+            else:
+                return obj.thumbnail.url
+        
+        # Fallback to placeholder
+        placeholder_url = '/static/images/video-placeholder.png'
+        if request:
+            return request.build_absolute_uri(placeholder_url)
+        return placeholder_url
     
     def get_video_file(self, obj):
         """Return absolute URL for video file."""

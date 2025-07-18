@@ -187,19 +187,32 @@ def hls_manifest(request, movie_id, resolution):
         except Exception:
             raise Http404("Error reading HLS manifest")
     
-    # Development fallback: create a simple manifest pointing to MP4
+    # Development fallback: create resolution-specific manifest
     if video.video_file:
-        # For development without FFmpeg, create a simple single-segment manifest
-        mp4_url = request.build_absolute_uri(video.video_file.url)
+        # Get resolution-specific video URL if available
+        video_url = None
         
-        # Create a simple single-segment manifest that works better with HLS.js
+        # Try to find VideoQuality for this resolution
+        try:
+            from ..models import VideoQuality
+            quality_obj = VideoQuality.objects.get(video=video, quality=resolution)
+            if quality_obj.video_file:
+                video_url = request.build_absolute_uri(quality_obj.video_file.url)
+        except VideoQuality.DoesNotExist:
+            pass
+        
+        # Fallback to original video file
+        if not video_url:
+            video_url = request.build_absolute_uri(video.video_file.url)
+        
+        # Create a simple single-segment manifest
         manifest_content = f"""#EXTM3U
 #EXT-X-VERSION:3
 #EXT-X-TARGETDURATION:3600
 #EXT-X-MEDIA-SEQUENCE:0
 #EXT-X-PLAYLIST-TYPE:VOD
 #EXTINF:3600.0,
-{mp4_url}
+{video_url}
 #EXT-X-ENDLIST
 """
         

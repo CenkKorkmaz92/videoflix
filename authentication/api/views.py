@@ -66,11 +66,8 @@ def register_user(request):
 def activate_account(request, uidb64, token):
     """
     Activate user account using uidb64 and token from email.
-    Redirects to frontend login page after activation.
+    Returns JSON response for frontend API consumption.
     """
-    from django.shortcuts import redirect
-    from django.conf import settings
-    
     try:
         uid = force_str(urlsafe_base64_decode(uidb64))
         user = User.objects.get(pk=uid)
@@ -80,22 +77,29 @@ def activate_account(request, uidb64, token):
                 user.is_active = True
                 user.is_email_verified = True
                 user.save()
-                # Redirect to frontend login with success message
-                frontend_url = getattr(settings, 'FRONTEND_URL', 'http://127.0.0.1:5500')
-                return redirect(f"{frontend_url}/index.html?activation=success")
+                return Response({
+                    'message': 'Account successfully activated!',
+                    'status': 'success'
+                }, status=status.HTTP_200_OK)
             else:
                 # Account already activated
-                frontend_url = getattr(settings, 'FRONTEND_URL', 'http://127.0.0.1:5500')
-                return redirect(f"{frontend_url}/index.html?activation=already_active")
+                return Response({
+                    'message': 'Account already activated',
+                    'status': 'already_active'
+                }, status=status.HTTP_200_OK)
         else:
-            # Invalid token
-            frontend_url = getattr(settings, 'FRONTEND_URL', 'http://127.0.0.1:5500')
-            return redirect(f"{frontend_url}/index.html?activation=invalid")
+            # Invalid or expired token
+            return Response({
+                'message': 'Invalid or expired activation link',
+                'status': 'invalid'
+            }, status=status.HTTP_400_BAD_REQUEST)
             
     except (TypeError, ValueError, OverflowError, User.DoesNotExist):
         # Invalid link
-        frontend_url = getattr(settings, 'FRONTEND_URL', 'http://127.0.0.1:5500')
-        return redirect(f"{frontend_url}/index.html?activation=error")
+        return Response({
+            'message': 'Invalid activation link',
+            'status': 'error'
+        }, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])

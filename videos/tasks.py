@@ -54,7 +54,7 @@ def process_video_upload(video_id: int):
                     )
         
         # Create different quality versions
-        create_video_qualities.delay(video_id)
+        create_video_qualities(video_id)  # Call directly instead of .delay()
         
         video.is_processed = True
         video.save()
@@ -79,7 +79,7 @@ def create_video_qualities(video_id: int):
         video = Video.objects.get(id=video_id)
         source_path = video.video_file.path
         
-        qualities = ['120p', '360p', '720p', '1080p']
+        qualities = ['480p', '720p', '1080p']
         
         for quality in qualities:
             # Skip if quality already exists
@@ -118,6 +118,11 @@ def create_video_qualities(video_id: int):
             else:
                 logger.error(f"Failed to create {quality} version for video: {video.title}")
         
+        # Mark video as processed after all qualities are created
+        video.is_processed = True
+        video.save()
+        logger.info(f"Video {video.title} marked as processed - all qualities created!")
+        
         logger.info(f"Finished processing qualities for video: {video.title}")
         
     except Video.DoesNotExist:
@@ -151,7 +156,7 @@ def get_processing_status(video_id: int) -> dict:
         video = Video.objects.get(id=video_id)
         qualities = VideoQuality.objects.filter(video=video)
         
-        total_qualities = 4  # 120p, 360p, 720p, 1080p
+        total_qualities = 3  # 480p, 720p, 1080p
         ready_qualities = qualities.filter(is_ready=True).count()
         
         return {

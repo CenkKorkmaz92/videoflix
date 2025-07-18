@@ -124,7 +124,7 @@ def convert_video_quality(input_path: str, output_path: str, quality: str) -> bo
     Args:
         input_path: Source video path
         output_path: Output video path
-        quality: Target quality (360p, 720p, 1080p)
+        quality: Target quality (480p, 720p, 1080p)
         
     Returns:
         True if successful, False otherwise
@@ -132,7 +132,7 @@ def convert_video_quality(input_path: str, output_path: str, quality: str) -> bo
     try:
         # Quality settings
         quality_settings = {
-            '360p': {'width': 640, 'height': 360, 'bitrate': '800k'},
+            '480p': {'width': 854, 'height': 480, 'bitrate': '1000k'},
             '720p': {'width': 1280, 'height': 720, 'bitrate': '2500k'},
             '1080p': {'width': 1920, 'height': 1080, 'bitrate': '5000k'},
         }
@@ -184,14 +184,14 @@ def convert_to_hls(input_path: str, output_dir: str, quality: str) -> bool:
     Args:
         input_path: Source video path
         output_dir: Output directory for HLS files
-        quality: Target quality (360p, 720p, 1080p)
+        quality: Target quality (480p, 720p, 1080p)
         
     Returns:
         True if successful, False otherwise
     """
     try:
         quality_settings = {
-            '360p': {'width': 640, 'height': 360, 'bitrate': '800k'},
+            '480p': {'width': 854, 'height': 480, 'bitrate': '1000k'},
             '720p': {'width': 1280, 'height': 720, 'bitrate': '2500k'},
             '1080p': {'width': 1920, 'height': 1080, 'bitrate': '5000k'},
         }
@@ -264,8 +264,8 @@ def clean_filename(filename: str) -> str:
     """
     # Remove unsafe characters
     import re
-    filename = re.sub(r'[^\w\s-.]', '', filename)
-    filename = re.sub(r'[-\s]+', '-', filename)
+    filename = re.sub(r'[^\w\s\-.]', '', filename)
+    filename = re.sub(r'[\-\s]+', '-', filename)
     return filename.lower()
 
 
@@ -309,7 +309,8 @@ def process_video_task(video_id):
         # Update video duration
         duration = get_video_duration(video_path)
         if duration > 0:
-            video.duration = duration
+            from datetime import timedelta
+            video.duration = timedelta(seconds=duration)
             video.save()
         
         # Generate thumbnail if not exists
@@ -326,7 +327,7 @@ def process_video_task(video_id):
                     )
         
         # Convert to different qualities
-        qualities = ['360p', '720p', '1080p']
+        qualities = ['480p', '720p', '1080p']
         
         for quality in qualities:
             # Check if quality already exists

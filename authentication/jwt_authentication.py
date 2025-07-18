@@ -27,7 +27,9 @@ class JWTCookieAuthentication(JWTAuthentication):
             validated_token = self.get_validated_token(access_token)
             user = self.get_user(validated_token)
             return user, validated_token
-        except TokenError:
+        except (TokenError, InvalidToken):
+            # Return None instead of raising exception for invalid tokens
+            # This allows AllowAny endpoints to work even with invalid cookies
             return None
     
     def get_validated_token(self, raw_token):

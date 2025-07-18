@@ -1,277 +1,86 @@
 # 🎬 VideoFlix Backend API
 
-A modern Django REST API for video streaming platform with JWT authentication, email verification, and HLS video processing.
+A modern Django REST API for video streaming with JWT authentication, email verification, and automatic video processing.
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- **Docker & Docker Compose**
-  - Windows: [Docker Desktop](https://docs.docker.com/desktop/install/windows-install/)
-  - Mac: [Docker Desktop](https://docs.docker.com/desktop/install/mac-install/)
-  - Linux: [Docker Engine](https://docs.docker.com/engine/install/) + [Docker Compose](https://docs.docker.com/compose/install/)
+- [Docker Desktop](https://docs.docker.com/desktop/)
 
-### 🐳 Setup with Docker
-
-1. **Clone the repository**
+### Setup
+1. **Clone and start**
    ```bash
    git clone https://github.com/CenkKorkmaz92/videoflix.git
    cd videoflix
-   ```
-
-2. **Create environment file**
-   ```bash
-   # Linux/Mac
-   cp .env.template .env
-   
-   # Windows (Command Prompt)
    copy .env.template .env
-   
-   # Windows (PowerShell)
-   Copy-Item .env.template .env
-   ```
-
-3. **Start all services**
-   ```bash
    docker-compose up --build
    ```
 
-4. **Wait for services to start**
+2. **Setup static files** (Important!)
    ```bash
-   # The containers will automatically:
-   # - Set up the database
-   # - Run migrations  
-   # - Create admin user (admin@example.com/adminpassword)
-   # - Start the API server
+   docker-compose exec web python manage.py setup_static_files
    ```
 
-5. **Add sample videos (optional)**
-   ```bash
-   docker-compose exec web python manage.py add_sample_videos --download
-   ```
-
-6. **Access the API**
+3. **Access the app**
    - **API**: http://localhost:8000/api/
-   - **Admin Panel**: http://localhost:8000/admin/ (admin@example.com/adminpassword)
-   - **API Documentation**: http://localhost:8000/api/ (browsable API)
+   - **Admin**: http://localhost:8000/admin/ (admin@example.com / adminpassword)
 
-## 🎯 API Features
+## ✨ Features
 
-- ✅ **User Authentication** - JWT with email verification
-- ✅ **Video Management** - Upload, process, stream videos
-- ✅ **HLS Streaming** - Adaptive quality streaming
-- ✅ **Email System** - Account activation & password reset
-- ✅ **Admin Interface** - Video and user management with bulk actions
-- ✅ **Background Tasks** - Automatic video processing with Redis/RQ
-- ✅ **Auto-Processing** - Videos uploaded via admin automatically appear in frontend
-- ✅ **Debug Tools** - Management commands and API endpoints for troubleshooting
+- 🔐 **JWT Authentication** with email verification
+- 🎥 **Automatic Video Processing** (480p, 720p, 1080p)
+- 📱 **HLS Streaming** with quality switching
+- ⚡ **Background Processing** with Redis Queue
+- 🖼️ **Placeholder Images** for smooth frontend experience
 
-## 📡 API Endpoints
+## 📡 Key API Endpoints
 
-### Authentication
-```
-POST /api/register/           # User registration
-GET  /api/activate/<token>/   # Email verification
-POST /api/login/              # User login
-POST /api/logout/             # User logout
-POST /api/password_reset/     # Request password reset
-```
-
-### Videos
-```
-GET  /api/video/                    # List all videos
-GET  /api/video/<id>/              # Video details
-GET  /api/video/<id>/<quality>/    # HLS streaming endpoints
-```
-
-### Admin/Debug (Staff only)
-```
-GET  /api/videos/admin/processing-status/     # Check video processing status
-POST /api/videos/admin/force-process/<id>/    # Force process specific video
-POST /api/videos/admin/mark-processed/<id>/   # Mark video as processed manually
-```
-
-##  Email Configuration & Verification System
-
-### 📧 Setting Up Real Email Delivery
-
-To enable real email sending (for account activation), configure SMTP settings in your `.env` file:
-
-#### Option 1: Gmail
-1. **Create a Gmail App Password:**
-   - Enable 2-Step Verification on your Gmail account
-   - Go to Google Account > Security > App Passwords
-   - Generate a new App Password for "Mail"
-
-2. **Update `.env` file:**
-   ```bash
-   EMAIL_HOST=smtp.gmail.com
-   EMAIL_PORT=587
-   EMAIL_HOST_USER=your_email@gmail.com
-   EMAIL_HOST_PASSWORD=your_16_character_app_password
-   EMAIL_USE_TLS=True
-   DEFAULT_FROM_EMAIL=your_email@gmail.com
-   ```
-
-#### Option 2: Microsoft 365 (Outlook/Hotmail)
-1. **Create an App Password:**
-   - Go to Microsoft Account Security settings
-   - Enable 2-Step Verification
-   - Generate App Password for "Mail"
-
-2. **Update `.env` file:**
-   ```bash
-   EMAIL_HOST=smtp-mail.outlook.com
-   EMAIL_PORT=587
-   EMAIL_HOST_USER=your_email@outlook.com
-   EMAIL_HOST_PASSWORD=your_app_password
-   EMAIL_USE_TLS=True
-   DEFAULT_FROM_EMAIL=your_email@outlook.com
-   ```
-
-   **Note:** For @hotmail.com, @live.com, or @msn.com addresses, use the same settings.
-
-#### Option 3: Yahoo Mail
 ```bash
-EMAIL_HOST=smtp.mail.yahoo.com
+# Authentication
+POST /api/register/           # Register user
+POST /api/login/              # Login
+GET  /api/activate/<token>/   # Activate account
+
+# Videos
+GET  /api/video/              # List videos
+GET  /api/video/<id>/         # Video details  
+GET  /api/video/<id>/stream/  # HLS streaming
+```
+
+## 🎬 Video Upload
+
+1. Go to **Admin Panel**: http://localhost:8000/admin/
+2. **Videos** → **Add Video** → Upload file
+3. **Automatic processing** starts in background
+4. Video appears in frontend when `is_processed=True`
+
+## 🔧 Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| Frontend rapid refresh | `docker-compose exec web python manage.py setup_static_files` |
+| Videos not processing | Check logs: `docker-compose logs worker` |
+| Can't login after registration | Check activation email in `emails/` folder |
+
+## 🛠️ Tech Stack
+
+- **Backend**: Django 5.2.4 + DRF
+- **Database**: PostgreSQL  
+- **Queue**: Redis + RQ
+- **Video**: FFmpeg + HLS
+- **Deploy**: Docker
+
+## 📧 Email Setup (Optional)
+
+For real email delivery, add to `.env`:
+```bash
+EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
-EMAIL_HOST_USER=your_email@yahoo.com
+EMAIL_HOST_USER=your_email@gmail.com
 EMAIL_HOST_PASSWORD=your_app_password
 EMAIL_USE_TLS=True
-DEFAULT_FROM_EMAIL=your_email@yahoo.com
 ```
-
-#### Option 4: Other Providers
-For other email providers, check their SMTP settings documentation:
-- **HOST**: Usually `smtp.yourprovider.com`
-- **PORT**: Typically `587` (TLS) or `465` (SSL)
-- **TLS/SSL**: Enable appropriate encryption
-
-3. **Restart Docker containers:**
-   ```bash
-   docker-compose down
-   docker-compose up --build
-   ```
-
-### 🔄 Alternative: File-Based Email (Development)
-
-For development/testing without real emails, you can use file-based email backend:
-
-1. **Change in `settings.py`:**
-   ```python
-   EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
-   EMAIL_FILE_PATH = os.path.join(BASE_DIR, 'emails')
-   ```
-
-2. **Check emails:** Activation emails will be saved as `.log` files in the `emails/` folder.
-
-### How to activate user accounts:
-1. User registers via API
-2. **With SMTP:** Check your email inbox for activation email
-3. **With file backend:** Check `emails/` folder for activation email (.log file)
-4. Click activation link or visit: `http://localhost:8000/api/activate/{uidb64}/{token}`
-
-### Quick activation via Django shell:
-```bash
-docker-compose exec web python manage.py shell
->>> from django.contrib.auth import get_user_model
->>> User = get_user_model()
->>> user = User.objects.get(email='test@example.com')
->>> user.is_active = True
->>> user.is_email_verified = True
->>> user.save()
-```
-
-## 🎬 Video Management
-
-### Admin Panel Video Upload
-1. **Go to Admin Panel:** http://localhost:8000/admin/
-2. **Login:** admin@example.com / adminpassword
-3. **Navigate:** Videos → Add Video
-4. **Upload:** Fill form and upload video file
-5. **Automatic Processing:** Video will be automatically processed and appear in frontend
-
-### Video Processing Management
-```bash
-# Check processing status of all videos
-docker-compose exec web python manage.py process_pending_videos
-
-# Mark all unprocessed videos as processed (skip processing)
-docker-compose exec web python manage.py process_pending_videos --mark-all-processed
-
-# Queue videos for background processing
-docker-compose exec web python manage.py process_pending_videos --queue-only
-```
-
-### Admin Interface Features
-- ✅ **Bulk Actions** - Mark multiple videos as processed
-- ✅ **Processing Status** - Visual indicators for video processing state
-- ✅ **Manual Override** - Force processing or mark as processed
-- ✅ **Filter & Search** - Find videos by status, genre, or title
-
-## 🛠️ Project Structure
-
-```
-videoflix/
-├── authentication/       # User auth & JWT
-├── videos/              # Video management & HLS
-├── content/             # Static content management
-├── core/                # Django settings & config
-├── templates/           # Email templates
-├── docker-compose.yml   # Docker services
-└── requirements.txt     # Python dependencies
-```
-
-## 🐛 Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| **Environment variable errors** | Make sure you copied `.env.template` to `.env` (use correct command for your OS) |
-| **"cp command not found" (Windows)** | Use `copy .env.template .env` instead of `cp` |
-| **Database connection error** | Restart containers: `docker-compose restart` |
-| **User can't login after registration** | Check `emails/` folder for activation link |
-| **Video processing fails** | Ensure FFmpeg is available in Docker container |
-| **Redis connection error** | Restart containers: `docker-compose restart` |
-| **Permission denied errors** | Check Docker file permissions |
-| **Videos uploaded via admin don't appear** | Check processing status with `python manage.py process_pending_videos` |
-| **Background processing stuck** | Use admin bulk actions to mark videos as processed |
-| **Email activation not working** | Check SMTP configuration or use Django shell to manually activate |
-
-## 🔒 Security Features
-
-- JWT tokens with HttpOnly cookies
-- Email verification required
-- CORS protection
-- Environment-based secrets
-- Password strength validation
-
-## 💾 Tech Stack
-
-- **Backend**: Django 5.2.4, Django REST Framework
-- **Database**: PostgreSQL
-- **Cache/Queue**: Redis, Django-RQ
-- **Authentication**: JWT (SimpleJWT)
-- **Video Processing**: FFmpeg, HLS
-- **Deployment**: Docker, Gunicorn
-
-## 📝 Testing
-
-```bash
-# Run tests inside Docker container
-docker-compose exec web pytest
-
-# With coverage
-docker-compose exec web pytest --cov=.
-```
-
-## 🚀 Production Deployment
-
-1. Set environment variables for production
-2. Use PostgreSQL database
-3. Configure email backend (SMTP)
-4. Set `DEBUG=False`
-5. Configure static files serving
-6. Use Gunicorn with reverse proxy
 
 ---
 
-**Backend API for VideoFlix streaming platform** 🎬
+**VideoFlix - Netflix-style video streaming backend** 🚀
