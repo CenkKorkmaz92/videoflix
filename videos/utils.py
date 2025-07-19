@@ -392,12 +392,23 @@ def process_video_task(video_id):
         
         logger.info(f"Starting video processing for video ID {video_id}")
         
-        # Update video duration
+        # Update video duration (handle both float and timedelta database types)
         duration = get_video_duration(video_path)
         if duration > 0:
             from datetime import timedelta
-            video.duration = timedelta(seconds=duration)
-            video.save()
+            try:
+                # Try to save as timedelta (new format)
+                video.duration = timedelta(seconds=duration)
+                video.save()
+            except Exception as e:
+                logger.warning(f"Could not save duration as timedelta, trying float: {e}")
+                try:
+                    # Fallback to float (old format compatibility)
+                    video.duration = duration
+                    video.save()
+                except Exception as e2:
+                    logger.error(f"Could not save duration in any format: {e2}")
+                    # Continue processing even if duration fails
         
         # Generate thumbnail if not exists
         if not video.thumbnail:
