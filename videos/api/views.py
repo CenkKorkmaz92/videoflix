@@ -187,7 +187,7 @@ def hls_manifest(request, movie_id, resolution):
                     content = f.read()
                 
                 # Update segment URLs to include the resolution path
-                base_url = request.build_absolute_uri(f'/api/video/{movie_id}/{resolution}/segment/')
+                base_url = request.build_absolute_uri(f'/api/video/{movie_id}/{resolution}/')
                 updated_content = []
                 
                 for line in content.split('\n'):
