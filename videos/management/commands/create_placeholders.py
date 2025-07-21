@@ -44,34 +44,40 @@ class Command(BaseCommand):
             self.style.SUCCESS(f'Created placeholder image at {placeholder_path}')
         )
         
-        # Create multiple placeholder images for different videos
-        from videos.models import Video
-        videos = Video.objects.all()
-        
-        for video in videos:
-            # Create unique placeholder for each video
-            img = Image.new('RGB', (300, 200), color='#34495e')
-            draw = ImageDraw.Draw(img)
+        # Create multiple placeholder images for different videos (if any exist)
+        try:
+            from videos.models import Video
+            videos = Video.objects.all()
             
-            # Add video title
-            title_text = video.title[:20] + "..." if len(video.title) > 20 else video.title
-            
-            if font:
-                # Get text size
-                bbox = draw.textbbox((0, 0), title_text, font=font)
-                text_width = bbox[2] - bbox[0]
-                text_height = bbox[3] - bbox[1]
+            for video in videos:
+                # Create unique placeholder for each video
+                img = Image.new('RGB', (300, 200), color='#34495e')
+                draw = ImageDraw.Draw(img)
                 
-                # Center the text
-                x = (300 - text_width) // 2
-                y = (200 - text_height) // 2
+                # Add video title
+                title_text = video.title[:20] + "..." if len(video.title) > 20 else video.title
                 
-                draw.text((x, y), title_text, fill='white', font=font)
-            
-            # Save video-specific placeholder
-            video_placeholder_path = os.path.join(static_images_dir, f'video-{video.id}-placeholder.png')
-            img.save(video_placeholder_path)
-            
+                if font:
+                    # Get text size
+                    bbox = draw.textbbox((0, 0), title_text, font=font)
+                    text_width = bbox[2] - bbox[0]
+                    text_height = bbox[3] - bbox[1]
+                    
+                    # Center the text
+                    x = (300 - text_width) // 2
+                    y = (200 - text_height) // 2
+                    
+                    draw.text((x, y), title_text, fill='white', font=font)
+                
+                # Save video-specific placeholder
+                video_placeholder_path = os.path.join(static_images_dir, f'video-{video.id}-placeholder.png')
+                img.save(video_placeholder_path)
+                
+                self.stdout.write(
+                    self.style.SUCCESS(f'Created placeholder for "{video.title}" at {video_placeholder_path}')
+                )
+        except Exception as e:
+            # If no videos exist or other error, just continue with default placeholder
             self.stdout.write(
-                self.style.SUCCESS(f'Created placeholder for "{video.title}" at {video_placeholder_path}')
+                self.style.WARNING(f'Could not create video-specific placeholders: {e}')
             )

@@ -16,14 +16,11 @@ A modern Django REST API for video streaming with JWT authentication, email veri
    docker-compose up --build
    ```
 
-2. **Setup static files** (Important!)
-   ```bash
-   docker-compose exec web python manage.py setup_static_files
-   ```
-
-3. **Access the app**
+2. **Access the app**
    - **API**: http://localhost:8000/api/
    - **Admin**: http://localhost:8000/admin/ (admin@example.com / adminpassword)
+
+💡 **Note**: Everything is automatic! Placeholder images, database setup, and static files are created during container startup.
 
 ## ✨ Features
 

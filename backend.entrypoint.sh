@@ -14,9 +14,9 @@ echo "PostgreSQL is ready - continuing..."
 
 # Django setup commands
 python manage.py collectstatic --noinput
-python manage.py create_placeholders  # Create placeholder images
 python manage.py makemigrations
 python manage.py migrate
+python manage.py create_placeholders  # Create placeholder images AFTER migrations
 
 # Create superuser using environment variables
 python manage.py shell <<EOF
