@@ -27,19 +27,14 @@ class VideoQualitySerializer(serializers.ModelSerializer):
         """Get the full URL for the video quality file."""
         request = self.context.get('request')
         if request and obj.file_path:
-            # Build URL from file_path
             from django.conf import settings
             import os
             
-            # Convert to string if it's a Path object
             file_path = str(obj.file_path)
             
-            # If file_path is already a relative path from MEDIA_ROOT
             if file_path.startswith(str(settings.MEDIA_ROOT)):
-                # Get relative path from MEDIA_ROOT
                 relative_path = os.path.relpath(file_path, settings.MEDIA_ROOT).replace('\\', '/')
             else:
-                # Assume it's already a relative path
                 relative_path = file_path.replace('\\', '/').lstrip('/')
             
             return request.build_absolute_uri(settings.MEDIA_URL + relative_path)
@@ -67,14 +62,12 @@ class VideoListSerializer(serializers.ModelSerializer):
         """Return absolute URL for thumbnail."""
         request = self.context.get('request')
         
-        # Use the thumbnail file directly if available
         if obj.thumbnail and obj.thumbnail.name:
             if request:
                 return request.build_absolute_uri(obj.thumbnail.url)
             else:
                 return obj.thumbnail.url
         
-        # Fallback to placeholder
         placeholder_url = '/static/images/video-placeholder.png'
         if request:
             return request.build_absolute_uri(placeholder_url)
@@ -86,7 +79,6 @@ class VideoListSerializer(serializers.ModelSerializer):
         if not request:
             return obj.video_file.url if obj.video_file else None
         
-        # Try to use 720p quality first (good balance for video list)
         try:
             quality_720p = obj.qualities.filter(quality='720p', is_ready=True).first()
             if quality_720p and quality_720p.file_path:
@@ -103,7 +95,6 @@ class VideoListSerializer(serializers.ModelSerializer):
         except:
             pass
         
-        # Fallback to original video file
         if obj.video_file:
             return request.build_absolute_uri(obj.video_file.url)
         return None
@@ -130,14 +121,12 @@ class VideoDetailSerializer(serializers.ModelSerializer):
         """Return absolute URL for thumbnail."""
         request = self.context.get('request')
         
-        # Use the thumbnail file directly if available
         if obj.thumbnail and obj.thumbnail.name:
             if request:
                 return request.build_absolute_uri(obj.thumbnail.url)
             else:
                 return obj.thumbnail.url
         
-        # Fallback to placeholder
         placeholder_url = '/static/images/video-placeholder.png'
         if request:
             return request.build_absolute_uri(placeholder_url)
@@ -168,8 +157,7 @@ class VideoUploadSerializer(serializers.ModelSerializer):
                 "Unsupported video format. Please upload MP4, AVI, MOV, MKV, WMV, FLV, or WebM files."
             )
         
-        # Check file size (max 500MB)
-        max_size = 500 * 1024 * 1024  # 500MB in bytes
+        max_size = 500 * 1024 * 1024
         if value.size > max_size:
             raise serializers.ValidationError(
                 "Video file too large. Maximum size is 500MB."
@@ -204,7 +192,7 @@ class WatchProgressSerializer(serializers.ModelSerializer):
     class Meta:
         model = WatchProgress
         fields = [
-            'video', 'current_time', 'is_completed', 
+            'video', 'current_time', 'is_completed',
             'progress_percentage', 'last_watched'
         ]
         read_only_fields = ['last_watched']
@@ -223,7 +211,7 @@ class DashboardSerializer(serializers.Serializer):
         genres_data = []
         for genre in Genre.objects.all():
             videos = Video.objects.filter(
-                genre=genre, 
+                genre=genre,
                 is_processed=True
             ).order_by('-created_at')[:10]
             
@@ -242,7 +230,7 @@ class DashboardSerializer(serializers.Serializer):
             return []
         
         progress_list = WatchProgress.objects.filter(
-            user=user, 
+            user=user,
             is_completed=False,
             current_time__gt=0
         ).select_related('video').order_by('-last_watched')[:5]

@@ -27,22 +27,19 @@ def process_video_upload(video_id: int):
         video = Video.objects.get(id=video_id)
         video_path = video.video_file.path
         
-        # Get video duration
         duration_seconds = get_video_duration(video_path)
         if duration_seconds > 0:
             video.duration = timedelta(seconds=duration_seconds)
         
-        # Extract thumbnail if not provided
         if not video.thumbnail:
             thumbnail_filename = f"thumb_{video.id}.jpg"
             thumbnail_path = os.path.join(
-                settings.MEDIA_ROOT, 
-                'thumbnails', 
-                str(video.id), 
+                settings.MEDIA_ROOT,
+                'thumbnails',
+                str(video.id),
                 thumbnail_filename
             )
             
-            # Create directory if it doesn't exist
             os.makedirs(os.path.dirname(thumbnail_path), exist_ok=True)
             
             if extract_thumbnail(video_path, thumbnail_path):
@@ -53,8 +50,7 @@ def process_video_upload(video_id: int):
                         save=False
                     )
         
-        # Create different quality versions
-        create_video_qualities(video_id)  # Call directly instead of .delay()
+        create_video_qualities(video_id)
         
         video.is_processed = True
         video.save()
@@ -67,7 +63,7 @@ def process_video_upload(video_id: int):
         logger.error(f"Error processing video {video_id}: {e}")
 
 
-@django_rq.job('default', timeout=3600)  # 1 hour timeout
+@django_rq.job('default', timeout=3600)
 def create_video_qualities(video_id: int):
     """
     Background task to create different quality versions of video.
@@ -82,30 +78,24 @@ def create_video_qualities(video_id: int):
         qualities = ['480p', '720p', '1080p']
         
         for quality in qualities:
-            # Skip if quality already exists
             if VideoQuality.objects.filter(video=video, quality=quality).exists():
                 continue
             
-            # Create output directory
             output_dir = os.path.join(
-                settings.MEDIA_ROOT, 
-                'videos', 
-                str(video.id), 
+                settings.MEDIA_ROOT,
+                'videos',
+                str(video.id),
                 'qualities'
             )
             os.makedirs(output_dir, exist_ok=True)
             
-            # Generate output filename
             base_name = clean_filename(os.path.splitext(video.video_file.name)[0])
             output_filename = f"{base_name}_{quality}.mp4"
             output_path = os.path.join(output_dir, output_filename)
             
-            # Convert video
             if convert_video_quality(source_path, output_path, quality):
-                # Get file size
                 file_size = get_file_size(output_path)
                 
-                # Create VideoQuality record
                 VideoQuality.objects.create(
                     video=video,
                     quality=quality,
@@ -118,7 +108,6 @@ def create_video_qualities(video_id: int):
             else:
                 logger.error(f"Failed to create {quality} version for video: {video.title}")
         
-        # Mark video as processed after all qualities are created
         video.is_processed = True
         video.save()
         logger.info(f"Video {video.title} marked as processed - all qualities created!")
@@ -156,7 +145,7 @@ def get_processing_status(video_id: int) -> dict:
         video = Video.objects.get(id=video_id)
         qualities = VideoQuality.objects.filter(video=video)
         
-        total_qualities = 3  # 480p, 720p, 1080p
+        total_qualities = 3
         ready_qualities = qualities.filter(is_ready=True).count()
         
         return {

@@ -65,10 +65,8 @@ class Video(models.Model):
     def thumbnail_url(self):
         """Get thumbnail URL or placeholder."""
         if self.thumbnail and self.thumbnail.name:
-            # Check if it's a static file path (starts with /static/)
             if self.thumbnail.name.startswith('/static/'):
                 return self.thumbnail.name
-            # Otherwise, it's a normal media file
             else:
                 return self.thumbnail.url
         return '/static/images/video-placeholder.png'
@@ -138,10 +136,8 @@ def process_video_for_hls(sender, instance, created, **kwargs):
     Uses mentor's FFmpeg command for conversion.
     """
     if created and instance.video_file:
-        # Import here to avoid circular imports
         from .hls_utils import hls_processor
         
-        # Process video in background (optional)
         try:
             hls_processor.convert_to_hls(instance)
         except Exception as e:

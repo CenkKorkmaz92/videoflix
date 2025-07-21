@@ -12,11 +12,11 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     Serializer for user registration.
     """
     password = serializers.CharField(
-        write_only=True, 
+        write_only=True,
         style={'input_type': 'password'}
     )
     confirmed_password = serializers.CharField(
-        write_only=True, 
+        write_only=True,
         style={'input_type': 'password'}
     )
     
@@ -62,7 +62,6 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """Create new user."""
         validated_data.pop('confirmed_password')
-        # Create inactive user - account remains inactive until email verification
         validated_data['is_active'] = False
         user = User.objects.create_user(**validated_data)
         return user

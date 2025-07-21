@@ -12,15 +12,12 @@ class Command(BaseCommand):
             self.style.SUCCESS('🚀 Setting up VideoFlix static files...')
         )
         
-        # 1. Collect static files
         self.stdout.write('📁 Collecting static files...')
         call_command('collectstatic', '--noinput')
         
-        # 2. Create placeholder images
         self.stdout.write('🖼️ Creating placeholder images...')
         call_command('create_placeholders')
         
-        # 3. Verify setup
         static_images_dir = os.path.join(settings.STATIC_ROOT, 'images')
         placeholder_path = os.path.join(static_images_dir, 'video-placeholder.png')
         

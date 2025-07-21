@@ -16,7 +16,7 @@ def check_ffmpeg_installed() -> bool:
         True if FFmpeg is available, False otherwise
     """
     try:
-        result = subprocess.run(['ffmpeg', '-version'], 
+        result = subprocess.run(['ffmpeg', '-version'],
                               capture_output=True, text=True, timeout=10)
         return result.returncode == 0
     except (subprocess.TimeoutExpired, FileNotFoundError):
@@ -63,7 +63,7 @@ def get_video_duration(video_path: str) -> float:
     """
     try:
         cmd = [
-            'ffprobe', '-v', 'quiet', '-show_entries', 
+            'ffprobe', '-v', 'quiet', '-show_entries',
             'format=duration', '-of', 'csv=p=0', video_path
         ]
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
@@ -88,16 +88,15 @@ def extract_thumbnail(video_path: str, thumbnail_path: str, time_offset: str = "
         True if successful, False otherwise
     """
     try:
-        # Ensure output directory exists
         os.makedirs(os.path.dirname(thumbnail_path), exist_ok=True)
         
         cmd = [
-            'ffmpeg', '-i', video_path, 
-            '-ss', time_offset,          # Seek to time position
-            '-vframes', '1',             # Extract 1 frame
-            '-q:v', '2',                 # High quality
-            '-vf', 'scale=320:240',      # Resize to standard thumbnail size
-            '-y', thumbnail_path         # Overwrite if exists
+            'ffmpeg', '-i', video_path,
+            '-ss', time_offset,
+            '-vframes', '1',
+            '-q:v', '2',
+            '-vf', 'scale=320:240',
+            '-y', thumbnail_path
         ]
         
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
@@ -130,7 +129,6 @@ def convert_video_quality(input_path: str, output_path: str, quality: str) -> bo
         True if successful, False otherwise
     """
     try:
-        # Quality settings with VERY noticeable differences
         quality_settings = {
             '480p': {'width': 640, 'height': 360, 'bitrate': '400k', 'crf': '32'},
             '720p': {'width': 1280, 'height': 720, 'bitrate': '2000k', 'crf': '23'},
@@ -143,25 +141,24 @@ def convert_video_quality(input_path: str, output_path: str, quality: str) -> bo
         
         settings_dict = quality_settings[quality]
         
-        # Ensure output directory exists
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         
         cmd = [
             'ffmpeg', '-i', input_path,
-            '-c:v', 'libx264',                                    # Video codec
-            '-preset', 'medium',                                  # Encoding speed/quality balance
-            '-crf', settings_dict['crf'],                         # Variable quality (lower = better)
-            '-vf', f"scale={settings_dict['width']}:{settings_dict['height']}", # Scale video
-            '-maxrate', settings_dict['bitrate'],                 # Maximum bitrate
-            '-bufsize', f"{int(settings_dict['bitrate'][:-1]) * 2}k", # Buffer size
-            '-c:a', 'aac',                                        # Audio codec
-            '-b:a', '128k',                                       # Audio bitrate
-            '-movflags', '+faststart',                            # Web optimization
-            '-y', output_path                                     # Overwrite if exists
+            '-c:v', 'libx264',
+            '-preset', 'medium',
+            '-crf', settings_dict['crf'],
+            '-vf', f"scale={settings_dict['width']}:{settings_dict['height']}",
+            '-maxrate', settings_dict['bitrate'],
+            '-bufsize', f"{int(settings_dict['bitrate'][:-1]) * 2}k",
+            '-c:a', 'aac',
+            '-b:a', '128k',
+            '-movflags', '+faststart',
+            '-y', output_path
         ]
         
         logger.info(f"Starting video conversion to {quality}: {output_path}")
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)  # 30 minute timeout
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
         
         if result.returncode == 0 and os.path.exists(output_path):
             logger.info(f"Video conversion successful: {quality} - {output_path}")
@@ -202,7 +199,6 @@ def convert_to_hls_segments(input_path: str, output_dir: str, quality: str) -> b
         
         settings_dict = quality_settings[quality]
         
-        # Ensure output directory exists
         os.makedirs(output_dir, exist_ok=True)
         
         playlist_path = os.path.join(output_dir, 'index.m3u8')
@@ -218,9 +214,9 @@ def convert_to_hls_segments(input_path: str, output_dir: str, quality: str) -> b
             '-bufsize', f"{int(settings_dict['bitrate'][:-1]) * 2}k",
             '-c:a', 'aac',
             '-b:a', '128k',
-            '-hls_time', '10',                    # 10 second segments
-            '-hls_list_size', '0',                # Keep all segments
-            '-hls_segment_filename', segment_pattern,  # Segment naming pattern
+            '-hls_time', '10',
+            '-hls_list_size', '0',
+            '-hls_segment_filename', segment_pattern,
             '-y', playlist_path
         ]
         
@@ -287,7 +283,6 @@ def convert_to_hls(input_path: str, output_dir: str, quality: str) -> bool:
         
         settings_dict = quality_settings[quality]
         
-        # Ensure output directory exists
         os.makedirs(output_dir, exist_ok=True)
         
         playlist_path = os.path.join(output_dir, f"{quality}.m3u8")
@@ -301,9 +296,9 @@ def convert_to_hls(input_path: str, output_dir: str, quality: str) -> bool:
             '-b:v', settings_dict['bitrate'],
             '-c:a', 'aac',
             '-b:a', '128k',
-            '-hls_time', '10',                    # 10 second segments
-            '-hls_list_size', '0',                # Keep all segments
-            '-hls_flags', 'single_file',          # Single file output
+            '-hls_time', '10',
+            '-hls_list_size', '0',
+            '-hls_flags', 'single_file',
             '-y', playlist_path
         ]
         
@@ -348,7 +343,6 @@ def clean_filename(filename: str) -> str:
     Returns:
         Cleaned filename
     """
-    # Remove unsafe characters
     import re
     filename = re.sub(r'[^\w\s\-.]', '', filename)
     filename = re.sub(r'[\-\s]+', '-', filename)
@@ -392,25 +386,20 @@ def process_video_task(video_id):
         
         logger.info(f"Starting video processing for video ID {video_id}")
         
-        # Update video duration (handle both float and timedelta database types)
         duration = get_video_duration(video_path)
         if duration > 0:
             from datetime import timedelta
             try:
-                # Try to save as timedelta (new format)
                 video.duration = timedelta(seconds=duration)
                 video.save()
             except Exception as e:
                 logger.warning(f"Could not save duration as timedelta, trying float: {e}")
                 try:
-                    # Fallback to float (old format compatibility)
                     video.duration = duration
                     video.save()
                 except Exception as e2:
                     logger.error(f"Could not save duration in any format: {e2}")
-                    # Continue processing even if duration fails
         
-        # Generate thumbnail if not exists
         if not video.thumbnail:
             thumbnail_filename = f"thumb_{video.id}.jpg"
             thumbnail_path = os.path.join(settings.MEDIA_ROOT, 'thumbnails', thumbnail_filename)
@@ -423,32 +412,26 @@ def process_video_task(video_id):
                         save=False
                     )
         
-        # Convert to different qualities with HLS segmentation
         qualities = ['480p', '720p', '1080p']
         
         for quality in qualities:
-            # Check if quality already exists
             if not video.qualities.filter(quality=quality).exists():
-                # Create HLS directory for this quality
                 hls_output_dir = os.path.join(settings.MEDIA_ROOT, 'videos', str(video.id), 'hls', quality)
                 
                 if convert_to_hls_segments(video_path, hls_output_dir, quality):
-                    # Get the m3u8 file path
                     m3u8_path = os.path.join(hls_output_dir, 'index.m3u8')
                     
-                    # Create VideoQuality record pointing to HLS directory
                     VideoQuality.objects.create(
                         video=video,
                         quality=quality,
                         file_size=get_directory_size(hls_output_dir),
-                        file_path=hls_output_dir,  # Point to HLS directory
+                        file_path=hls_output_dir,
                         is_ready=True
                     )
                     logger.info(f"Created HLS {quality} quality for video {video_id}")
                 else:
                     logger.error(f"Failed to convert HLS {quality} for video {video_id}")
         
-        # Update processing status
         video.is_processed = True
         video.save()
         

@@ -22,16 +22,13 @@ from .views import HomeView, DashboardView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    # API endpoints to match frontend expectations
-    path('api/', include('authentication.urls')),  # Direct API auth endpoints
-    path('api/', include('videos.urls')),          # Direct API video endpoints
+    path('api/', include('authentication.urls')),
+    path('api/', include('videos.urls')),
     path('api/content/', include('content.urls')),
-    # Frontend views (optional - for Django templates approach)
     path('', HomeView.as_view(), name='home'),
     path('dashboard/', DashboardView.as_view(), name='dashboard'),
 ]
 
-# Serve media and static files in development
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

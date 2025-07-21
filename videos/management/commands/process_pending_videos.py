@@ -30,7 +30,6 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        # Get unprocessed videos
         cutoff_date = timezone.now() - timezone.timedelta(days=options['days'])
         unprocessed_videos = Video.objects.filter(
             is_processed=False,
@@ -40,7 +39,6 @@ class Command(BaseCommand):
         self.stdout.write(f"Found {unprocessed_videos.count()} unprocessed videos")
 
         if options['mark_all_processed']:
-            # Mark all as processed without actual processing
             updated = unprocessed_videos.update(is_processed=True)
             self.stdout.write(
                 self.style.SUCCESS(f'Marked {updated} videos as processed')
@@ -48,7 +46,6 @@ class Command(BaseCommand):
             return
 
         if options['queue_only']:
-            # Queue videos for processing
             queue = get_queue('default')
             count = 0
             
@@ -63,7 +60,6 @@ class Command(BaseCommand):
             )
             return
 
-        # List unprocessed videos with details
         for video in unprocessed_videos:
             self.stdout.write(f"\nVideo ID: {video.id}")
             self.stdout.write(f"Title: {video.title}")

@@ -57,7 +57,6 @@ class ContentPageViewTest(TestCase):
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # Just check that we get a successful response
         self.assertIsNotNone(response.data)
     
     def test_content_page_detail_view(self):

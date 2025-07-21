@@ -68,11 +68,9 @@ class Command(BaseCommand):
             self.stdout.write(f'- {user.email} (joined: {user.date_joined})')
 
     def show_activation_link(self, user):
-        # Generate activation token
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         
-        # Generate activation link
         activation_link = f"http://localhost:3000/pages/auth/activate.html?uid={uid}&token={token}"
         
         self.stdout.write(self.style.SUCCESS(f'Activation link for {user.email}:'))

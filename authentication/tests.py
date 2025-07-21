@@ -86,7 +86,6 @@ class AuthenticationViewTest(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('detail', response.data)
         self.assertEqual(response.data['detail'], 'Login successful')
-        # Tokens are set as HttpOnly cookies, not in response body
         self.assertIn('access_token', response.cookies)
         self.assertIn('refresh_token', response.cookies)
     

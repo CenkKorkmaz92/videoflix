@@ -46,17 +46,13 @@ class Command(BaseCommand):
             return
 
         try:
-            # Get the input file path
             input_path = video.video_file.path
             
-            # Create HLS output directory
             hls_dir = os.path.join(settings.MEDIA_ROOT, 'hls', str(video.id))
             os.makedirs(hls_dir, exist_ok=True)
             
-            # Output m3u8 file path
             output_m3u8 = os.path.join(hls_dir, 'index.m3u8')
             
-            # FFmpeg command from mentors
             cmd = [
                 'ffmpeg',
                 '-i', input_path,
@@ -68,18 +64,15 @@ class Command(BaseCommand):
                 output_m3u8
             ]
             
-            # Add force overwrite flag
             if force:
                 cmd.insert(1, '-y')
             
             self.stdout.write(f'Processing video: {video.title}')
             self.stdout.write(f'Command: {" ".join(cmd)}')
             
-            # Run FFmpeg command
             result = subprocess.run(cmd, capture_output=True, text=True)
             
             if result.returncode == 0:
-                # Mark video as processed
                 video.is_processed = True
                 video.save()
                 

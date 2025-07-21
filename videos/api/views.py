@@ -32,16 +32,14 @@ class VideoListView(generics.ListAPIView):
         """Filter videos by genre and search query."""
         queryset = Video.objects.filter(is_processed=True)
         
-        # Filter by genre
         genre = self.request.query_params.get('genre')
         if genre:
             queryset = queryset.filter(genre__slug=genre)
         
-        # Search by title or description
         search = self.request.query_params.get('search')
         if search:
             queryset = queryset.filter(
-                Q(title__icontains=search) | 
+                Q(title__icontains=search) |
                 Q(description__icontains=search)
             )
         
@@ -51,7 +49,6 @@ class VideoListView(generics.ListAPIView):
         """Return videos as direct array for frontend compatibility."""
         queryset = self.filter_queryset(self.get_queryset())
         serializer = self.get_serializer(queryset, many=True)
-        # Return direct array instead of {"results": [...]} or {"videos": [...]}
         return Response(serializer.data)
 
 
@@ -75,7 +72,6 @@ class VideoUploadView(generics.CreateAPIView):
         """Save video and start processing."""
         video = serializer.save(uploaded_by=self.request.user)
         
-        # Queue video processing task
         queue = get_queue('default')
         queue.enqueue(process_video_task, video.id)
 
@@ -127,7 +123,6 @@ def dashboard_data(request):
     """
     Get dashboard data including hero video and genre-based videos.
     """
-    # Get hero video (most recent processed video)
     hero_video = Video.objects.filter(is_processed=True).order_by('-created_at').first()
     
     data = {'hero_video': hero_video}
@@ -144,7 +139,6 @@ def delete_video(request, video_id):
     """
     video = get_object_or_404(Video, id=video_id)
     
-    # Check permissions
     if video.uploaded_by != request.user and not request.user.is_staff:
         return Response(
             {'detail': 'You do not have permission to delete this video.'},
@@ -156,7 +150,7 @@ def delete_video(request, video_id):
 
 
 @api_view(['GET'])
-@permission_classes([permissions.AllowAny])  # Allow unauthenticated access for development
+@permission_classes([permissions.AllowAny])
 def hls_manifest(request, movie_id, resolution):
     """
     Serve HLS manifest file for video streaming.
@@ -170,7 +164,6 @@ def hls_manifest(request, movie_id, resolution):
     except Video.DoesNotExist:
         raise Http404("Video not found")
     
-    # Quality-specific HLS: serve proper HLS segments for each quality
     try:
         from ..models import VideoQuality
         from django.conf import settings
@@ -178,21 +171,17 @@ def hls_manifest(request, movie_id, resolution):
         
         quality_obj = VideoQuality.objects.get(video=video, quality=resolution)
         if quality_obj.file_path and quality_obj.is_ready:
-            # Check if it's an HLS directory (new format)
             hls_manifest_path = os.path.join(quality_obj.file_path, 'index.m3u8')
             
             if os.path.exists(hls_manifest_path):
-                # Serve the quality-specific HLS manifest
                 with open(hls_manifest_path, 'r') as f:
                     content = f.read()
                 
-                # Update segment URLs to include the resolution path
                 base_url = request.build_absolute_uri(f'/api/video/{movie_id}/{resolution}/')
                 updated_content = []
                 
                 for line in content.split('\n'):
                     if line.strip().endswith('.ts'):
-                        # Replace segment filename with full URL
                         segment_name = line.strip()
                         updated_content.append(base_url + segment_name)
                     else:
@@ -209,7 +198,6 @@ def hls_manifest(request, movie_id, resolution):
     except VideoQuality.DoesNotExist:
         pass
     
-    # Fallback to mentor's HLS if no quality-specific HLS available
     if hls_processor.hls_exists(video.id):
         try:
             manifest_path = hls_processor.get_m3u8_path(video.id)
@@ -224,20 +212,15 @@ def hls_manifest(request, movie_id, resolution):
             return response
             
         except Exception:
-            # Fall through to MP4 fallback
             pass
     
-    # Development fallback: create resolution-specific manifest
     if video.video_file:
-        # Get resolution-specific video URL if available
         video_url = None
         
-        # Try to find VideoQuality for this resolution
         try:
             from ..models import VideoQuality
             quality_obj = VideoQuality.objects.get(video=video, quality=resolution)
             if quality_obj.file_path and quality_obj.is_ready:
-                # Build URL from file_path using the same logic as VideoQualitySerializer
                 from django.conf import settings
                 import os
                 
@@ -251,19 +234,11 @@ def hls_manifest(request, movie_id, resolution):
         except VideoQuality.DoesNotExist:
             pass
         
-        # Fallback to original video file
         if not video_url:
             video_url = request.build_absolute_uri(video.video_file.url)
         
-        # Create a simple single-segment manifest with quality-specific MP4
-        manifest_content = f"""#EXTM3U
-#EXT-X-VERSION:3
-#EXT-X-TARGETDURATION:10
-#EXT-X-MEDIA-SEQUENCE:0
-#EXT-X-PLAYLIST-TYPE:VOD
-#EXTINF:10.0,
+        manifest_content = f"""
 {video_url}
-#EXT-X-ENDLIST
 """
         
         response = HttpResponse(manifest_content, content_type='application/vnd.apple.mpegurl')
@@ -277,7 +252,7 @@ def hls_manifest(request, movie_id, resolution):
 
 
 @api_view(['GET'])
-@permission_classes([permissions.AllowAny])  # Allow unauthenticated access for development
+@permission_classes([permissions.AllowAny])
 def hls_segment(request, movie_id, resolution, segment):
     """
     Serve HLS video segments for streaming.
@@ -292,7 +267,6 @@ def hls_segment(request, movie_id, resolution, segment):
     except Video.DoesNotExist:
         raise Http404("Video not found")
     
-    # First try mentor's HLS segments
     try:
         segment_path = os.path.join(hls_processor.get_hls_directory(video.id), segment)
         if os.path.exists(segment_path):
@@ -300,7 +274,7 @@ def hls_segment(request, movie_id, resolution, segment):
                 content = f.read()
             
             response = HttpResponse(content, content_type='video/MP2T')
-            response['Cache-Control'] = 'max-age=3600'  # Cache segments for 1 hour
+            response['Cache-Control'] = 'max-age=3600'
             response['Access-Control-Allow-Origin'] = '*'
             response['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
             response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
@@ -308,7 +282,6 @@ def hls_segment(request, movie_id, resolution, segment):
     except Exception:
         pass
     
-    # Try quality-specific HLS segments
     try:
         from ..models import VideoQuality
         quality_obj = VideoQuality.objects.get(video=video, quality=resolution)
@@ -321,7 +294,7 @@ def hls_segment(request, movie_id, resolution, segment):
                     content = f.read()
                 
                 response = HttpResponse(content, content_type='video/MP2T')
-                response['Cache-Control'] = 'max-age=3600'  # Cache segments for 1 hour
+                response['Cache-Control'] = 'max-age=3600'
                 response['Access-Control-Allow-Origin'] = '*'
                 response['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
                 response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
@@ -342,7 +315,6 @@ def processing_status(request):
     from django.utils import timezone
     import os
     
-    # Get all videos with processing status
     videos = Video.objects.all().order_by('-created_at')
     
     status_data = []
@@ -368,7 +340,6 @@ def processing_status(request):
         
         status_data.append(video_data)
     
-    # Summary statistics
     total_videos = len(status_data)
     processed_videos = len([v for v in status_data if v['is_processed']])
     unprocessed_videos = total_videos - processed_videos
@@ -401,7 +372,6 @@ def force_process_video(request, video_id):
                 'error': 'Video has no file to process'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Queue the video for processing
         queue = get_queue('default')
         job = queue.enqueue(process_video_task, video.id)
         

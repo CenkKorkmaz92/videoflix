@@ -35,17 +35,13 @@ class HLSProcessor:
             return False
         
         try:
-            # Input file path
             input_path = video_instance.video_file.path
             
-            # Create HLS directory for this video
             hls_dir = os.path.join(self.hls_base_path, str(video_instance.id))
             os.makedirs(hls_dir, exist_ok=True)
             
-            # Output m3u8 file
             output_m3u8 = os.path.join(hls_dir, 'index.m3u8')
             
-            # Mentor's FFmpeg command
             cmd = [
                 'ffmpeg',
                 '-i', input_path,
@@ -57,23 +53,20 @@ class HLSProcessor:
                 output_m3u8
             ]
             
-            # Add overwrite flag if force is True
             if force:
                 cmd.insert(1, '-y')
             
             logger.info(f'Converting video {video_instance.id} to HLS')
             logger.debug(f'FFmpeg command: {" ".join(cmd)}')
             
-            # Execute FFmpeg
             result = subprocess.run(
-                cmd, 
-                capture_output=True, 
-                text=True, 
-                timeout=3600  # 1 hour timeout
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=3600
             )
             
             if result.returncode == 0:
-                # Mark as processed
                 video_instance.is_processed = True
                 video_instance.save()
                 
@@ -129,5 +122,4 @@ class HLSProcessor:
             logger.info(f'Cleaned up HLS files for video {video_id}')
 
 
-# Global instance
 hls_processor = HLSProcessor()

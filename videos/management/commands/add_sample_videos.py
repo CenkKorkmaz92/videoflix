@@ -25,7 +25,6 @@ class Command(BaseCommand):
             Video.objects.all().delete()
             self.stdout.write(self.style.SUCCESS('Cleared existing videos'))
 
-        # Ensure genres exist
         genres_data = [
             {'name': 'Action', 'slug': 'action'},
             {'name': 'Comedy', 'slug': 'comedy'},
@@ -42,7 +41,6 @@ class Command(BaseCommand):
             if created:
                 self.stdout.write(f'Created genre: {genre.name}')
 
-        # Sample videos data
         sample_videos = [
             {
                 'title': 'Big Buck Bunny',
@@ -78,7 +76,6 @@ class Command(BaseCommand):
         for video_data in sample_videos:
             genre = Genre.objects.get(name=video_data['genre'])
             
-            # Check if video already exists
             if Video.objects.filter(title=video_data['title']).exists():
                 self.stdout.write(f'Video "{video_data["title"]}" already exists, skipping...')
                 continue
@@ -93,14 +90,11 @@ class Command(BaseCommand):
             if options['download'] and video_data['video_url']:
                 try:
                     self.stdout.write(f'Downloading {video_data["title"]}...')
-                    # Download the video file
                     response = urllib.request.urlopen(video_data['video_url'])
                     video_content = response.read()
                     
-                    # Create a file name
                     file_name = f"{video_data['title'].lower().replace(' ', '_')}.mp4"
                     
-                    # Save the video file
                     video.video_file.save(
                         file_name,
                         ContentFile(video_content),

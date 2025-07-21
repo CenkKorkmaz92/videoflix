@@ -40,7 +40,7 @@ class CustomUser(AbstractUser):
     Custom user model extending Django's AbstractUser.
     Uses email as the primary identifier instead of username.
     """
-    username = None  # Remove username field
+    username = None
     email = models.EmailField(_('email address'), unique=True)
     is_email_verified = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -49,7 +49,7 @@ class CustomUser(AbstractUser):
     objects = CustomUserManager()
     
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = []  # Email is already the username field
+    REQUIRED_FIELDS = []
     
     class Meta:
         db_table = 'auth_user'
@@ -65,8 +65,8 @@ class EmailVerificationToken(models.Model):
     Model to store email verification tokens.
     """
     user = models.OneToOneField(
-        CustomUser, 
-        on_delete=models.CASCADE, 
+        CustomUser,
+        on_delete=models.CASCADE,
         related_name='verification_token'
     )
     token = models.CharField(max_length=100, unique=True)
@@ -84,8 +84,8 @@ class PasswordResetToken(models.Model):
     Model to store password reset tokens.
     """
     user = models.ForeignKey(
-        CustomUser, 
-        on_delete=models.CASCADE, 
+        CustomUser,
+        on_delete=models.CASCADE,
         related_name='reset_tokens'
     )
     token = models.CharField(max_length=100, unique=True)

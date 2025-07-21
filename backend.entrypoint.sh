@@ -4,7 +4,6 @@ set -e
 
 echo "Waiting for PostgreSQL on $DB_HOST:$DB_PORT..."
 
-# Wait for PostgreSQL to be ready
 while ! pg_isready -h "$DB_HOST" -p "$DB_PORT" -q; do
   echo "PostgreSQL is not ready - sleeping 1 second"
   sleep 1
@@ -12,13 +11,11 @@ done
 
 echo "PostgreSQL is ready - continuing..."
 
-# Django setup commands
 python manage.py collectstatic --noinput
 python manage.py makemigrations
 python manage.py migrate
-python manage.py create_placeholders  # Create placeholder images AFTER migrations
+python manage.py create_placeholders
 
-# Create superuser using environment variables
 python manage.py shell <<EOF
 import os
 from django.contrib.auth import get_user_model
@@ -35,8 +32,6 @@ else:
     print(f"Superuser '{email}' already exists.")
 EOF
 
-# Start RQ worker in background
 python manage.py rqworker default &
 
-# Start Gunicorn server
 exec gunicorn core.wsgi:application --bind 0.0.0.0:8000
