@@ -8,6 +8,8 @@ from .utils import (
     get_video_duration,
     extract_thumbnail,
     convert_video_quality,
+    convert_to_hls_segments,
+    get_directory_size,
     get_file_size,
     clean_filename
 )
@@ -81,35 +83,61 @@ def create_video_qualities(video_id: int):
             if VideoQuality.objects.filter(video=video, quality=quality).exists():
                 continue
             
-            output_dir = os.path.join(
+            # Create HLS segments for each quality instead of MP4 files
+            hls_output_dir = os.path.join(
                 settings.MEDIA_ROOT,
                 'videos',
                 str(video.id),
-                'qualities'
+                'hls',
+                quality
             )
-            os.makedirs(output_dir, exist_ok=True)
+            os.makedirs(hls_output_dir, exist_ok=True)
             
-            base_name = clean_filename(os.path.splitext(video.video_file.name)[0])
-            output_filename = f"{base_name}_{quality}.mp4"
-            output_path = os.path.join(output_dir, output_filename)
-            
-            if convert_video_quality(source_path, output_path, quality):
-                file_size = get_file_size(output_path)
+            if convert_to_hls_segments(source_path, hls_output_dir, quality):
+                m3u8_path = os.path.join(hls_output_dir, 'index.m3u8')
                 
-                VideoQuality.objects.create(
-                    video=video,
-                    quality=quality,
-                    file_path=output_path,
-                    file_size=file_size,
-                    is_ready=True
-                )
-                
-                logger.info(f"Created {quality} version for video: {video.title}")
+                if os.path.exists(m3u8_path):
+                    file_size = get_directory_size(hls_output_dir)
+                    
+                    VideoQuality.objects.create(
+                        video=video,
+                        quality=quality,
+                        file_path=hls_output_dir,  # Directory path, not file
+                        file_size=file_size,
+                        is_ready=True
+                    )
+                    
+                    logger.info(f"Created HLS {quality} quality for video: {video.title}")
+                else:
+                    logger.error(f"HLS manifest not found for {quality}: {m3u8_path}")
             else:
-                logger.error(f"Failed to create {quality} version for video: {video.title}")
+                logger.error(f"Failed to create HLS {quality} for video: {video.title}")
         
         video.is_processed = True
         video.save()
+        
+        # Extract actual video thumbnail after processing is complete
+        if not video.thumbnail:
+            thumbnail_filename = f"thumb_{video.id}.jpg"
+            thumbnail_path = os.path.join(
+                settings.MEDIA_ROOT,
+                'thumbnails',
+                thumbnail_filename
+            )
+            
+            os.makedirs(os.path.dirname(thumbnail_path), exist_ok=True)
+            
+            if extract_thumbnail(source_path, thumbnail_path, time_offset="00:00:02"):
+                with open(thumbnail_path, 'rb') as thumb_file:
+                    video.thumbnail.save(
+                        thumbnail_filename,
+                        ContentFile(thumb_file.read()),
+                        save=True
+                    )
+                logger.info(f"Generated video thumbnail for: {video.title}")
+            else:
+                logger.warning(f"Could not extract thumbnail for: {video.title}")
+        
         logger.info(f"Video {video.title} marked as processed - all qualities created!")
         
         logger.info(f"Finished processing qualities for video: {video.title}")
