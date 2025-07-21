@@ -49,9 +49,19 @@ GET  /api/video/<id>/stream/  # HLS streaming
 
 ## 🎬 Video Upload & Processing
 
+### Automatic Thumbnail Generation
+- **Real thumbnails**: Extracted automatically from uploaded videos at 1-second mark
+- **Placeholder images**: Auto-created on container startup for videos without thumbnails
+- **Fallback system**: API always returns placeholder if video thumbnail fails
+- **No manual setup needed**: Everything works out of the box!
+
+### Upload Process
 1. Go to **Admin Panel**: http://localhost:8000/admin/
 2. **Videos** → **Add Video** → Upload file
-3. **Automatic processing** starts in background
+3. **Automatic processing** starts in background:
+   - Thumbnail extraction (if video has content)
+   - Multiple quality generation (480p, 720p, 1080p)
+   - HLS segmentation for adaptive streaming
 4. Video appears in frontend when `is_processed=True`
 
 ⏳ **Processing Time Notice:**

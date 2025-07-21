@@ -63,12 +63,12 @@ class AuthenticationViewTest(TestCase):
         url = reverse('authentication:register')
         data = {
             'email': 'newuser@example.com',
-            'password': 'newpass123',
-            'password_confirm': 'newpass123'
+            'password': 'NewPass123!',
+            'confirmed_password': 'NewPass123!'
         }
         
-        with patch('authentication.views.send_verification_email'):
-            response = self.client.post(url, data)
+        with patch('authentication.api.views.send_verification_email'):
+            response = self.client.post(url, data, format='json')
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertTrue(User.objects.filter(email='newuser@example.com').exists())
@@ -81,19 +81,22 @@ class AuthenticationViewTest(TestCase):
             'password': 'testpass123'
         }
         
-        response = self.client.post(url, data)
+        response = self.client.post(url, data, format='json')
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('access', response.data)
-        self.assertIn('refresh', response.data)
+        self.assertIn('detail', response.data)
+        self.assertEqual(response.data['detail'], 'Login successful')
+        # Tokens are set as HttpOnly cookies, not in response body
+        self.assertIn('access_token', response.cookies)
+        self.assertIn('refresh_token', response.cookies)
     
     def test_password_reset_request(self):
         """Test password reset request."""
-        url = reverse('authentication:password-reset')
+        url = reverse('authentication:password_reset')
         data = {'email': 'test@example.com'}
         
-        with patch('authentication.views.send_password_reset_email'):
-            response = self.client.post(url, data)
+        with patch('authentication.api.views.send_password_reset_email'):
+            response = self.client.post(url, data, format='json')
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
     
@@ -105,6 +108,6 @@ class AuthenticationViewTest(TestCase):
             'password': 'wrongpassword'
         }
         
-        response = self.client.post(url, data)
+        response = self.client.post(url, data, format='json')
         
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

@@ -80,7 +80,7 @@ def send_password_reset_email(user, uidb64: str, token: str) -> bool:
     """
     try:
         subject = 'Reset your Videoflix password'
-        reset_url = f"{settings.FRONTEND_URL}/password-confirm/{uidb64}/{token}"
+        reset_url = f"{settings.FRONTEND_URL}/pages/auth/confirm_password.html?uid={uidb64}&token={token}"
         
         html_message = render_to_string('emails/password_reset.html', {
             'user': user,
