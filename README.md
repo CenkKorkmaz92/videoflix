@@ -39,9 +39,9 @@ POST /api/login/              # Login
 GET  /api/activate/<token>/   # Activate account
 
 # Videos
-GET  /api/video/              # List videos
-GET  /api/video/<id>/         # Video details  
-GET  /api/video/<id>/stream/  # HLS streaming
+GET  /api/video/                        # List videos
+GET  /api/video/<id>/                   # Video details  
+GET  /api/video/<id>/<resolution>/index.m3u8  # HLS streaming
 ```
 
 ## 🎬 Video Upload & Processing
