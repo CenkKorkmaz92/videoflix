@@ -115,31 +115,31 @@ static/
 video/
 
 # ===== FRONTEND & NODE.js =====
-# Dependencies
+# Dependencies (if using Node.js build tools)
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Package files
-package-lock.json
-package.json  # Remove this if you want to track package.json
+# Package files (uncomment if using npm/yarn)
+# package-lock.json
+# package.json
 
-# Build outputs
-/dist/
-/build/
+# Build outputs (if using build tools)
+# /dist/
+# /build/
 
-# ===== FRONTEND FILES (EXCLUDED - SEPARATE REPOSITORY) =====
-# Frontend assets in root directory
-assets/
-pages/
-shared/
-index.html
-styles.css
-script.js
+# ===== FRONTEND FILES (NOW INCLUDED FOR FULL-STACK DEMO) =====
+# Frontend files are now tracked for complete recruiter demonstration
+# assets/         - Frontend assets (images, icons, etc.)
+# pages/          - Page components
+# shared/         - Shared frontend components  
+# index.html      - Main HTML entry point
+# styles.css      - Main stylesheet
+# script.js       - Main JavaScript file
 
-# Frontend documentation
-docs/jsdoc/
+# Frontend documentation (optional)
+# docs/jsdoc/
 
 # ===== IDEs & EDITORS =====
 # Visual Studio Code
